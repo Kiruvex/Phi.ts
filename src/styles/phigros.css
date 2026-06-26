@@ -1,0 +1,2268 @@
+/**
+ * Phi.ts — 全局 Phigros 样式
+ *
+ * 源自 phigros-html5 (MPL-2.0) by lchzh3473 & HanHan233
+ * 汇总自:
+ *   - assets/fonts/fonts.css (字体注册)
+ *   - 各页面 style.css 中的通用部分 (skew 风格、动画、工具类)
+ *
+ * 注意: 此文件在 layout.tsx 中位于 globals.css 之后导入，
+ * 因此 * 和 html, body 选择器会覆盖 globals.css 中的同选择器规则。
+ */
+
+/* ─── 字体注册（原版 assets/fonts/fonts.css，路径改为绝对路径） ────────── */
+@font-face {
+  font-family: 'Phigros';
+  src: url(/phigros/assets/fonts/Exo-Regular.otf);
+  src: url(/phigros/assets/fonts/Source\ Han\ Sans\ \&\ Saira\ Hybrid-Regular.ttf);
+}
+
+@font-face {
+  font-family: 'Mina';
+  src: url(/phigros/assets/fonts/Exo-Regular.otf);
+  src: url(/phigros/assets/fonts/Source\ Han\ Sans\ \&\ Saira\ Hybrid-Regular.ttf);
+}
+
+/* ─── 全局样式 ─────────────────────────────────────────── */
+* {
+  font-family: 'Phigros', 'Mina', sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #1a1a2e;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── Phigros 倾斜工具类（原版各页面通用的 skew(-15deg) 风格） ────────── */
+.phigros-skew {
+  transform: skew(-15deg);
+}
+
+.phigros-skew-revert {
+  transform: skew(15deg);
+}
+
+/* ─── 动画关键帧（从原版各 CSS 文件提取） ─────────────────────── */
+
+/* tapToStart: 点击过渡的全屏黑色遮罩渐入 */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* tapToStart: 气泡上浮（12s 循环，translateY 上升 + opacity 脉冲） */
+@keyframes float {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+}
+
+/* loadingScreen: 白块从左 -100% 平移到右 200% (1s 无限循环) */
+@keyframes loadingBarBGAnim {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* loadingScreen: 文字黑白闪烁 (1s 无限循环) */
+@keyframes loadingBarTXTAnim {
+  0% {
+    color: #000;
+  }
+  50% {
+    color: #fff;
+  }
+  100% {
+    color: #000;
+  }
+}
+
+/* songSelect: readyToLoadOverlay 从右滑入 */
+@keyframes slideIn {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* LevelOver: gradeImage 缩小进入 */
+@keyframes scaleDown {
+  0% {
+    transform: scale(2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* LevelOver: extraInfo (RKS) 展开动画，宽度 0 → 200px (2s ease-out) */
+@keyframes extract {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 200px;
+    opacity: 1;
+  }
+}
+
+/* loadingChartScreen: 渐入，margin 从 150px → 80px */
+@keyframes slideAndFadeIn {
+  0% {
+    margin-top: 150px;
+    opacity: 0;
+  }
+  100% {
+    margin-top: 80px;
+    opacity: 1;
+  }
+}
+
+/* ─── 通用工具类 ────────────────────────────────────────── */
+
+/* 透明度过渡（原版各页面 fade 类） */
+.fade {
+  transition: opacity 0.5s ease;
+}
+
+/* 隐藏元素 */
+.hide,
+.hidden {
+  display: none;
+}
+
+/* 全屏黑色遮罩（原版 chapterSelect / tapToStart / songSelect 共用） */
+.darkOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+
+/* 显示态：附加 fadeIn 类后变为不透明并拦截点击 */
+.darkOverlay.fadeIn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* LevelOver                                                  */
+/*                                                            */
+/* 源自 phigros-html5/LevelOver/style.css                     */
+/* 1:1 复刻结算页布局/动画。由于全局 slideIn/scaleDown/extract */
+/* 与原版 LevelOver 的同名动画关键帧不同（M1 时已简化），     */
+/* 这里使用 lo- 前缀避免覆盖。                                */
+/* ─────────────────────────────────────────────────────────── */
+
+/* ─── 关键帧（原版 LevelOver/style.css） ──────────────────── */
+
+/* mainContent/scoreFrame/atAGlance/detailFrame 不透明度渐入 */
+@keyframes lo-slideIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* mainContent 等容器从右侧滑入（margin-left: 200% → 0） */
+@keyframes lo-slide {
+  0% {
+    margin-left: 200%;
+  }
+}
+
+/* gradeImage 评级图缩小进入（带 skew(15deg) 反倾斜） */
+@keyframes lo-scaleDown {
+  0% {
+    opacity: 0;
+    transform: scale(1.5) skew(15deg);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.5) skew(15deg);
+  }
+  100% {
+    transform: scale(1) skew(15deg);
+  }
+}
+
+/* extraInfo RKS 面板展开（width 0 → 200px，带 padding 过渡） */
+@keyframes lo-extract {
+  0% {
+    opacity: 0;
+    width: 0;
+    padding: 10px 0 10px 0;
+  }
+  50% {
+    opacity: 0;
+  }
+  69% {
+    width: 0;
+    opacity: 1;
+    padding: 10px 0 10px 0;
+  }
+  70% {
+    width: 0;
+    opacity: 1;
+    padding: 10px 0 10px 0;
+  }
+  100% {
+    width: 200px;
+    opacity: 1;
+    padding: 10px 20px 10px 20px;
+  }
+}
+
+/* ─── 背景层（替代原版 body 背景） ───────────────────────── */
+.lo-bg {
+  position: fixed;
+  inset: 0;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  /* 原版 html/body 都有 backdrop-filter: blur(100px) */
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  z-index: 0;
+}
+
+/* ─── 主内容 flex 容器（替代原版 body 的 flex 居中） ─────── */
+.lo-flex-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ─── 重试按钮（左上角） ────────────────────────────────── */
+.lo-retry-btn {
+  position: fixed;
+  left: -15px;
+  top: 5px;
+  width: 100px;
+  height: 50px;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.lo-retry-btn::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  z-index: 1;
+  transform: skew(-15deg);
+  filter: drop-shadow(#fff 5px 0);
+}
+
+.lo-retry-btn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: url('/phigros/assets/images/Retry.png') no-repeat center center;
+  background-size: contain;
+  transform: scale(0.5);
+  z-index: 5;
+}
+
+/* ─── 返回按钮（右下角） ────────────────────────────────── */
+.lo-back-btn {
+  position: fixed;
+  right: -25px;
+  bottom: 15px;
+  width: 100px;
+  height: 50px;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.lo-back-btn::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  z-index: 1;
+  transform: skew(-15deg);
+  filter: drop-shadow(#fff -5px 0);
+}
+
+.lo-back-btn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: url('/phigros/assets/images/backInResault.png') no-repeat left center;
+  background-size: contain;
+  transform: scale(0.5);
+  z-index: 5;
+}
+
+/* ─── 主内容（mainContent，800x300，scale 缩放） ────────── */
+.lo-main-content {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: row;
+  height: 300px;
+  width: 800px;
+  /* JS 通过 style.transform 设置 scale(outerHeight/480) */
+  transform-origin: center center;
+  animation: lo-slideIn 0.5s linear, lo-slide 0.5s ease-out;
+}
+
+/* ─── 左侧：曲绘 + 曲名 + 难度 ─────────────────────────── */
+.lo-left-part {
+  position: relative;
+  height: 100%;
+  width: 60%;
+  transform: skew(-15deg);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 0 0 #000;
+}
+
+.lo-left-part::after {
+  content: '';
+  position: absolute;
+  height: 20%;
+  width: 100%;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(0deg, #000, transparent);
+  z-index: 0;
+}
+
+.lo-song-img {
+  height: 100%;
+  width: 200%;
+  max-width: none;
+  margin: -10%;
+  transform: skew(15deg);
+  object-fit: cover;
+}
+
+.lo-song-name {
+  position: absolute;
+  height: calc(1.5rem + 10px);
+  width: calc(100% - 100px);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  left: 15px;
+  bottom: 10px;
+  font-size: 1.5rem;
+  transform: skew(15deg);
+  z-index: 1;
+}
+
+.lo-level-string {
+  position: absolute;
+  right: 15px;
+  bottom: 10px;
+  font-size: 0.8rem;
+  transform: skew(15deg);
+  z-index: 1;
+}
+
+/* ─── 右侧：分数/概览/详情 容器 ────────────────────────── */
+.lo-score-outer-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 50%;
+  transform: skew(-15deg, 0deg);
+  margin-left: 20px;
+}
+
+.lo-score-frame {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 50%;
+  width: 100%;
+  padding: 5% 20% 5% 10%;
+  background: rgba(0, 0, 0, 0.4);
+  animation: lo-slideIn 0.8s linear, lo-slide 0.7s ease-out;
+}
+
+.lo-score {
+  font-size: 48px;
+  transform: skew(15deg);
+}
+
+.lo-grade {
+  height: 100%;
+  transition: 0.6s all ease-in;
+  object-fit: scale-down;
+  /* 默认态需包含 skew(15deg)，避免动画结束后丢失反倾斜 */
+  transform: skew(15deg);
+  animation: lo-scaleDown 0.8s cubic-bezier(0, 0, 1, 0.25);
+}
+
+.lo-at-a-glance {
+  width: 94%;
+  height: 15%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 7.5%;
+  padding-right: 7.5%;
+  background: rgba(0, 0, 0, 0.4);
+  animation: lo-slideIn 1s linear, lo-slide 0.8s ease-out;
+}
+
+.lo-max-combo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 14px;
+  transform: skew(15deg);
+}
+
+.lo-max-combo::after {
+  content: 'Max Combo';
+  font-size: 10px;
+}
+
+.lo-accu {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  line-height: 14px;
+  transform: skew(15deg);
+}
+
+.lo-accu::after {
+  content: 'Accuracy';
+  font-size: 10px;
+}
+
+.lo-detail-frame {
+  width: 94%;
+  height: 15%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 7.5%;
+  padding-right: 7.5%;
+  background: rgba(0, 0, 0, 0.4);
+  animation: lo-slideIn 1.4s linear, lo-slide 0.9s ease-out;
+}
+
+.lo-perfect,
+.lo-good,
+.lo-bad,
+.lo-miss,
+.lo-more-detail {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  line-height: 14px;
+  transform: skew(15deg);
+}
+
+.lo-perfect::after {
+  content: 'Perfect';
+  font-size: 10px;
+}
+
+.lo-good::after {
+  content: 'Good';
+  font-size: 10px;
+}
+
+.lo-bad::after {
+  content: 'Bad';
+  font-size: 10px;
+}
+
+.lo-miss::after {
+  content: 'Miss';
+  font-size: 10px;
+}
+
+.lo-early,
+.lo-late {
+  display: flex;
+  flex-direction: row;
+  font-size: 10px;
+}
+
+.lo-early::before {
+  /* 原版用全角空格 \3000 作为分隔 */
+  content: 'Early\3000\3000\3000';
+}
+
+.lo-late::before {
+  content: 'Late\3000\3000\3000';
+}
+
+/* ─── 底部中央：RKS 展开面板 ───────────────────────────── */
+.lo-extra-info {
+  position: fixed;
+  /* 显式水平居中（原版依赖 body flex 静态位置计算，结果等价于居中） */
+  left: calc(50% - 100px);
+  width: 200px;
+  padding: 10px 20px 10px 20px;
+  bottom: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  border-right: 2.5px #fff solid;
+  border-left: 2.5px #fff solid;
+  transform: skew(-15deg);
+  animation: lo-extract 2s ease-out;
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  z-index: 2;
+}
+
+.lo-extra-info > .lo-text {
+  transform: skew(15deg);
+}
+
+/* ─── settings ─────────────────────────────────────────── */
+/* 源自 phigros-html5/settings/style.css (177 行)
+ * 1:1 复刻原版视觉效果：左倾斜面板、skew 按钮、滑块、开关
+ * 适配 Next.js：原版 body 背景改为 .settings-root 包裹层背景
+ */
+
+.settings-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: url(/phigros/assets/images/InitialBackground.png) center center
+    no-repeat fixed;
+  background-size: cover;
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+}
+
+.settings-root .leftArea {
+  position: fixed;
+  top: 0;
+  left: -20%;
+  padding-left: 20%;
+  transform: skew(-15deg);
+  height: 100%;
+  width: 40%;
+  min-width: 500px;
+  background-color: rgba(0, 0, 0, 0.103);
+  color: #fff;
+  padding-top: 100px;
+  overflow: hidden;
+}
+
+.settings-root .backBtn {
+  position: fixed;
+  left: -15px;
+  top: 5px;
+  width: 100px;
+  height: 50px;
+  transform: skew(-15deg);
+  z-index: 1;
+  cursor: pointer;
+}
+.settings-root .backBtn::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  z-index: 1;
+  filter: drop-shadow(#fff 5px 0);
+}
+.settings-root .backBtn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: url(/phigros/assets/images/back.png) no-repeat center center;
+  transform: skew(15deg) scale(0.5);
+  z-index: 5;
+}
+
+.settings-root .item {
+  width: 100%;
+  height: 75px;
+  margin: 50px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: column;
+}
+
+.settings-root .title {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  transform: skew(15deg);
+}
+.settings-root .title::before {
+  content: attr(data-name);
+  padding-left: 20px;
+}
+.settings-root .title::after {
+  content: attr(data-value);
+  padding-right: 20px;
+}
+
+.settings-root .slider {
+  width: 95%;
+  height: 30px;
+  color: #000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #00000056;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.settings-root .slider::before,
+.settings-root .slider::after {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 120%;
+  width: 35px;
+  background-color: #fff;
+  font-size: 1.4em;
+  text-transform: skew(15deg);
+  flex-shrink: 0;
+}
+.settings-root .slider::before {
+  content: '-';
+}
+.settings-root .slider::after {
+  content: '+';
+}
+
+.settings-root .slideBlock {
+  position: relative;
+  left: 0;
+  top: 0;
+  display: block;
+  height: 120%;
+  width: 35px;
+  background-color: #fff;
+  pointer-events: none;
+  transition: margin-left 0.12s ease;
+  flex-shrink: 0;
+}
+
+.settings-root .toggle {
+  height: 25px;
+  width: 65px;
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  background-color: #000;
+  margin-right: 25px;
+  align-self: flex-end;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.settings-root .toggle.checked {
+  justify-content: end;
+}
+.settings-root .toggle::before {
+  content: '';
+  display: block;
+  height: 30px;
+  width: 30px;
+  background-color: #fff;
+}
+.settings-root .toggle.checked::after {
+  content: '√';
+  font-family: Arial, Helvetica, sans-serif;
+  order: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: calc(100% - 30px);
+  height: 100%;
+}
+.settings-root .toggle.checked::before {
+  order: 1;
+  content: '';
+  display: block;
+  height: 30px;
+  width: 30px;
+  background-color: #fff;
+}
+
+.settings-root .button {
+  height: 80%;
+  width: 200px;
+  margin-left: 10%;
+  align-self: flex-start;
+  font-size: 16px;
+  color: #fff;
+  border: 2px #fff solid;
+  background: transparent;
+  transform: skew(15deg);
+  cursor: pointer;
+}
+.settings-root .button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* loadingChartScreen                                          */
+/* 源自 phigros-html5/loadingChartScreen/style.css             */
+/* 所有类名加 phi-lcs- 前缀避免全局污染                         */
+/* ─────────────────────────────────────────────────────────── */
+
+/* 根容器：fixed 全屏遮罩，z-index 高于游戏 canvas */
+.phi-lcs-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* 默认背景 InitialBackground.png；meta 加载后由 inline style 覆盖为曲绘 */
+  background: url(/phigros/assets/images/InitialBackground.png) center center no-repeat fixed;
+  background-size: cover !important;
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  z-index: 9999;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 主内容区：height:70%, width:100%, flex row, padding:0 10% */
+.phi-lcs-mainContent {
+  height: 70%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 10%;
+  box-sizing: border-box;
+}
+
+/* 文本信息容器：整体倾斜 -15deg */
+.phi-lcs-textInfo {
+  transform: skew(-15deg);
+}
+
+/* 子元素反向倾斜 15deg 还原 */
+.phi-lcs-textInfo > * {
+  transform: skew(15deg);
+}
+
+/* 歌曲信息框：黑底 75px 高 350px 宽 */
+.phi-lcs-songInfoFrame {
+  display: flex;
+  height: 75px;
+  width: 350px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  /* songInfoFrame 自身不倾斜（覆盖 .phi-lcs-textInfo > * 的 skew） */
+  transform: skew(0deg);
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px 10px 10px 20px;
+  margin: 25px;
+  box-sizing: border-box;
+}
+
+/* songInfoFrame 直接子元素恢复倾斜（basicInfo 与 level） */
+.phi-lcs-songInfoFrame > * {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  transform: skew(15deg);
+}
+
+/* 曲名：32px */
+.phi-lcs-songName {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 32px;
+}
+
+/* 难度块：白底 90px 宽，高度溢出 35px */
+.phi-lcs-level {
+  height: calc(100% + 35px);
+  width: 90px;
+  min-width: 90px;
+  background-color: #fff;
+  /* 覆盖 .phi-lcs-songInfoFrame > * 的 skew */
+  transform: skew(0deg);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ::before 显示难度数字（来自 data-level 属性） */
+.phi-lcs-level::before {
+  content: attr(data-level);
+  display: block;
+  color: #000;
+  font-size: 42px;
+  transform: skew(15deg);
+}
+
+/* ::after 显示难度标识 EZ/HD/IN/AT（根据 level class） */
+.phi-lcs-level::after {
+  display: block;
+  color: #000;
+  transform: skew(15deg);
+}
+
+.phi-lcs-level-ez::after {
+  content: 'EZ';
+}
+.phi-lcs-level-hd::after {
+  content: 'HD';
+}
+.phi-lcs-level-in::after {
+  content: 'IN';
+}
+.phi-lcs-level-at::after {
+  content: 'AT';
+}
+
+/* 谱师/曲绘：18px，左侧 80px 缩进，带 slideAndFadeIn 渐入 */
+.phi-lcs-chartDesigner,
+.phi-lcs-illustrator {
+  display: flex;
+  flex-direction: column;
+  font-size: 18px;
+  margin: 10px 0 10px 80px;
+  animation: phi-lcs-slideAndFadeIn 0.8s ease-out;
+}
+
+.phi-lcs-chartDesigner::before {
+  content: 'Chart';
+  font-size: 12px;
+}
+
+.phi-lcs-illustrator::before {
+  content: 'Illustration';
+  font-size: 12px;
+}
+
+/* 曲绘信息延迟到 1s */
+.phi-lcs-illustrator {
+  animation: phi-lcs-slideAndFadeIn 1s ease-out;
+}
+
+/* slideAndFadeIn：左侧 margin 从 150px → 80px，opacity 0 → 1 */
+@keyframes phi-lcs-slideAndFadeIn {
+  0% {
+    opacity: 0;
+    margin: 10px 0 10px 150px;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    margin: 10px 0 10px 80px;
+  }
+}
+
+/* 曲绘图片容器：倾斜 -15deg */
+.phi-lcs-songImage {
+  transform: skew(-15deg);
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  object-fit: cover;
+}
+
+/* 曲绘 img：150% 宽，反向倾斜 15deg */
+.phi-lcs-illustration {
+  width: 150%;
+  max-width: none;
+  object-fit: cover;
+  margin-right: -50px;
+  transform: skew(15deg);
+}
+
+/* Tip：左下角 */
+.phi-lcs-tip::before {
+  content: 'Tip: ';
+}
+
+.phi-lcs-tip {
+  color: #fff;
+  position: fixed;
+  left: 2%;
+  bottom: 5%;
+  max-width: 50%;
+  word-break: break-word;
+}
+
+/* 加载条：右下角 */
+.phi-lcs-loadingBar {
+  position: fixed;
+  right: 2%;
+  bottom: 5%;
+  overflow: hidden;
+  padding: 0 4px;
+}
+
+/* Loading... 文字：黑白闪烁 */
+.phi-lcs-loadingBarTxT {
+  color: #000;
+  z-index: 999;
+  position: relative;
+  animation: loadingBarTXTAnim 1s ease-in-out infinite;
+}
+
+/* 白块：从 -100% 平移到 200% */
+.phi-lcs-loadingBarBG {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  z-index: -1;
+  background-color: #fff;
+  animation: loadingBarBGAnim 1s ease-in-out infinite;
+}
+
+/* ─── tapToStart 页面专属样式 ─────────────────────────── */
+/* 源自 phigros-html5/tapToStart/style.css，1:1 复刻原版视觉效果：
+   - 三层 backdrop-filter:blur 叠加（html blur(15px) + html::before blur(10px) + body blur(10px)）
+   - html/html::before 在 React 中改由两层 fixed div 实现（.tts-bg-1 / .tts-bg-2）
+   - body 的 backdrop-filter 由 .tts-container 实现
+   - 原 @keyframes float 在本仓库 phigros.css 顶部已存在但与原版实现不同（原版用 bottom:100%，
+     仓库版用 transform:translateY），为避免影响其他可能引用 float 的页面，这里使用独立关键帧 ttsFloat */
+
+/* 第一层背景：等价于原 html 的背景图 + backdrop-filter:blur(15px)。
+   在原版中 backdrop-filter 作用于 html 但因 html 是根元素无背后内容，实际无视觉效果；
+   此处仅保留背景图作为最底层。 */
+.tts-bg-1 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url(/phigros/assets/images/InitialBackground.png) center center no-repeat fixed;
+  background-size: cover;
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* 第二层背景：等价于原 html::before 的 filter:blur(10px)，位于第一层之上、内容之下 */
+.tts-bg-2 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url(/phigros/assets/images/InitialBackground.png) center center no-repeat fixed;
+  background-size: cover;
+  filter: blur(10px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 内容容器：等价于原 body 的 flex 列居中 + backdrop-filter:blur(10px) */
+.tts-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 0;
+}
+
+/* "Phi.ts" 标题（还原原版 Phigros logo：白色字心 + 外围蓝色荧光光晕）
+   color 白色，多层 text-shadow 叠加蓝色荧光扩散 */
+.tts-title {
+  margin: 0 0 30px;
+  color: #fff;
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px #87cefa, 0 0 16px #6cf, 0 0 32px rgba(100, 180, 255, 0.6),
+    0 0 48px rgba(180, 150, 255, 0.4), 0 0 64px rgba(200, 180, 255, 0.2);
+}
+
+/* "点 击 屏 幕 开 始" 提示文字 */
+.tts-tapToStart {
+  margin: 30px;
+  color: #fff;
+}
+
+/* 气泡元素（由 JS 动态创建并附加到 body） */
+.tts-bubble {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(255 255 255 / 85%);
+  height: 15px;
+  width: 15px;
+  position: fixed;
+  border-radius: 50%;
+  box-shadow: 0px 0px 15px 1px #fff;
+  animation: ttsFloat 12s linear;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 原版 float 关键帧（与 phigros.css 顶部已有的同名关键帧不同：原版用 bottom:100% 上升） */
+@keyframes ttsFloat {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.6;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    bottom: 100%;
+  }
+}
+
+/* 点击后的全屏黑色遮罩（由 JS 动态创建并附加到 body）
+   fadeIn 关键帧已在 phigros.css 顶部定义（0% opacity:0 → 100% opacity:1） */
+.tts-fadeIn {
+  height: 100vh;
+  width: 100vw;
+  background-color: #000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999;
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* ─── chapterSelect ────────────────────────────────────── */
+/* 源自 phigros-html5/chapterSelect/style.css (168 行)
+ * 1:1 复刻原版视觉效果：倾斜章节卡片、skew 设置按钮、双背景层
+ * 适配 Next.js：原版 body 改为 .cs-body（position:fixed 替代 absolute），
+ *              html::before 改为 .cs-bg-2，html 黑底改为 .cs-bg-1
+ * 所有类名加 cs- 前缀避免与全局 .darkOverlay 等冲突
+ */
+
+/* 第一层背景：等价于原 html 的黑色背景（global phigros.css 已设 html background:#000） */
+.cs-bg-1 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: -3;
+  pointer-events: none;
+}
+
+/* 第二层背景：等价于原 html::before 的 background + filter:blur(10px) + backdrop-filter:blur(15px)
+   原版 html::before 有两个定义（第二个覆盖第一个），合并后同时含 background+filter+backdrop-filter */
+.cs-bg-2 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url(/phigros/assets/images/InitialBackground.png) center center
+    no-repeat fixed;
+  background-size: cover;
+  filter: blur(10px);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* body 容器：原版 body 的布局样式（position:absolute → fixed 适配 Next.js）
+   重要：移除原版 body 的 background 和 backdrop-filter。
+   原版 body 自带背景+blur，但 body 是 absolute 定位，left 变化时背景跟着移；
+   新版 body 是 fixed 定位，若保留背景，left 变化时背景会跟着移，露出右侧未模糊区域。
+   修复：body 完全透明，毛玻璃由固定的 .cs-bg-2 独立提供，body 只作滚动容器。
+   width:max-content 使容器随内容增长，min-width:100vw 保证至少占满视口 */
+.cs-body {
+  position: fixed;
+  top: -10px;
+  left: 0;
+  height: 100vh;
+  width: max-content;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: 0.1s all ease-in-out;
+  background: transparent;
+  padding-left: 100px;
+  z-index: 0;
+}
+
+/* 章节卡片容器（原版 div.chapterContainer） */
+.cs-chapterContainer {
+  display: flex;
+  position: relative;
+  margin-left: 25px;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+  max-height: 450px;
+  height: 80%;
+  width: 85vh;
+  overflow: hidden;
+  flex-shrink: 0;
+  transform: skew(-15deg);
+  box-shadow: #000 0 0 10px 0;
+}
+
+/* 章节封面图（原版 img.chapterImage）
+   注意：max-width: none 覆盖 Tailwind preflight 的 img{max-width:100%}，
+   否则 width:150% 会被限制为容器宽度，导致图片右半被裁切
+   pointer-events: none 让点击穿透到 div.cs-chapterContainer，
+   这样 e.target 是 div 而非 img，handleClick 的 src 检测才能正确触发跳转 */
+.cs-chapterImage {
+  height: 100%;
+  width: 150%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+  transform: skew(15deg) translateX(-20%);
+  pointer-events: none;
+}
+
+/* 章节名（右上角，::before 显示 data-name 属性） */
+.cs-chapterContainer::before {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin: 2.5% 5%;
+  content: attr(data-name);
+  z-index: 1;
+  font-size: 1.2em;
+  transform: skew(15deg);
+  text-shadow: 0 0 5px #000;
+}
+
+/* "▷  P L A Y" 按钮（右下角，::after，渐变背景）
+   原版有两个 margin 声明（后者覆盖前者），保留此 quirk */
+.cs-chapterContainer::after {
+  content: '▷  P L A Y';
+  position: absolute;
+  color: #000;
+  background: linear-gradient(105deg, #00000000 15%, #fff 11%, #fff) no-repeat
+    center center;
+  right: 0;
+  bottom: 0;
+  margin: 2.5% 5%;
+  z-index: 1;
+  font-size: 1.3rem;
+  transform: translateX(18%) skew(15deg);
+  width: 45%;
+  height: 15%;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 15px 0 0;
+  cursor: pointer;
+}
+
+/* 设置按钮（右下角固定，原版 button.settingBtn） */
+.cs-settingBtn {
+  border: none;
+  position: fixed;
+  left: calc(100% - 75px);
+  bottom: 15px;
+  width: 100px;
+  height: 50px;
+  z-index: 1;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* 设置按钮黑色斜切底（::before） */
+.cs-settingBtn::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  z-index: 1;
+  transform: skew(-15deg);
+  filter: drop-shadow(#fff -5px 0);
+}
+
+/* 设置按钮 setting.png 图标（::after，scale(0.5) 缩小） */
+.cs-settingBtn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: url(/phigros/assets/images/setting.png) no-repeat left center;
+  background-size: contain;
+  transform: scale(0.5);
+  z-index: 5;
+}
+
+/* 全屏黑色遮罩（原版 div.darkOverlay）
+   初始 opacity:0 + animation:cs-fadeOut 1s（页面加载时从黑屏渐入）
+   z-index:0（动画结束后回归，不阻挡交互） */
+.cs-darkOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  z-index: 0;
+  pointer-events: none; /* 透明时不拦截点击，让卡片可交互 */
+  animation: cs-fadeOut 1s ease-out;
+}
+
+/* 点击章节后加 cs-fadeIn 类，触发 0.5s 渐入（覆盖页面）
+   !important 与原版一致，确保覆盖 cs-fadeOut 动画 */
+.cs-darkOverlay.cs-fadeIn {
+  animation: cs-fadeIn 0.5s ease-out !important;
+  pointer-events: auto; /* 渐入显示时拦截交互（过渡期间） */
+}
+
+/* fadeIn 关键帧（含 z-index:999 切换，确保动画期间在最上层）
+   与全局 fadeIn 关键帧不同（全局版无 z-index 切换），故加 cs- 前缀 */
+@keyframes cs-fadeIn {
+  0% {
+    z-index: 999;
+    opacity: 0;
+  }
+  100% {
+    z-index: 999;
+    opacity: 1;
+  }
+}
+
+/* fadeOut 关键帧（页面加载时从 opacity:1 渐出到 opacity:0，z-index:999 切换） */
+@keyframes cs-fadeOut {
+  0% {
+    z-index: 999;
+    opacity: 1;
+  }
+  100% {
+    z-index: 999;
+    opacity: 0;
+  }
+}
+
+/* ─── aboutUs ─────────────────────────────────────────── */
+/* 源自 phigros-html5/aboutUs/index.css + main.css
+ * 1:1 复刻双阶段 SPA 视觉效果：
+ *   阶段一 (intro) — index.css：黑底 + Phigros logo + "touch to start" 字间距脉动
+ *   阶段二 (credits) — main.css：黑底 + 白字 credits 滚动 + 双列 musicCredits + 跳过提示 + 黑屏过渡
+ * 适配 Next.js：原版通过切换 link[href] 切换 CSS 文件，React 中改为条件渲染不同根容器，
+ *              所有样式加 au- 前缀避免与全局 .darkOverlay / .hide 等冲突
+ * body 的 marginTop 由 page.tsx useEffect 直接操作（1:1 还原原版 main.js autoScroll 行为）
+ */
+
+/* ─── 阶段一：intro（tap-to-start 覆盖层） ──────────────── */
+
+.au-intro-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  background-size: cover;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  display: flex;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 0;
+  cursor: pointer;
+}
+
+/* "Phi.ts" 标题（白色字心 + 蓝色荧光光晕） */
+.au-title {
+  margin: 0 0 30px;
+  color: #fff;
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px #87cefa, 0 0 16px #6cf, 0 0 32px rgba(100, 180, 255, 0.6),
+    0 0 48px rgba(180, 150, 255, 0.4), 0 0 64px rgba(200, 180, 255, 0.2);
+}
+
+.au-tapToStart {
+  margin: 30px;
+  color: #fff;
+  letter-spacing: 1.1em;
+  animation: au-letterSpacingStretch 6s linear infinite;
+}
+
+@keyframes au-letterSpacingStretch {
+  0% {
+    letter-spacing: 1.1em;
+  }
+  50% {
+    letter-spacing: 1.2em;
+  }
+  100% {
+    letter-spacing: 1.1em;
+  }
+}
+
+/* ─── 阶段二：credits 滚动 ─────────────────────────────── */
+
+/* credits 根容器：等价于原版 body + div#main 的合并样式
+   - height:100% / width:100% / 黑底 / 白字
+   - flex column + center（横向居中）
+   - overflow-y:scroll + scrollbar-width:none + ::-webkit-scrollbar display:none（隐藏滚动条）
+   - position:relative（与原版一致，尽管 top:100vh 在 React 中不适用，autoScroll 用 body.marginTop 实现）
+   注：body 由全局 phigros.css 设置 overflow:hidden，此处 credits-root 不需要再 overflow */
+.au-credits-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  z-index: 0;
+}
+
+.au-credits-root::-webkit-scrollbar {
+  display: none;
+}
+
+/* pre 基础样式（原版 main.css pre 选择器） */
+.au-pre {
+  text-align: center;
+  line-height: 1.5em;
+  font-family: 'Phigros', 'Mina', sans-serif;
+  white-space: pre;
+  margin: 0;
+}
+
+/* fromGameDirector：行高 2.2em，居中 */
+.au-pre-fromGameDirector {
+  text-align: center;
+  line-height: 2.2em;
+}
+
+/* credits 名单：使用默认 pre 样式 */
+.au-pre-credits {
+  text-align: center;
+  line-height: 1.5em;
+}
+
+/* SNR logo 图片 */
+.au-snrLogo {
+  display: block;
+  margin: 0 auto;
+}
+
+/* musicCredits：flex column 居中，内含 div.mainContent 双列 */
+.au-pre-musicCredits {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+/* musicCredits 内的双列容器 */
+.au-mainContent {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 左右两列 pre：margin 30px */
+.au-pre-leftSide,
+.au-pre-rightSide {
+  margin: 30px;
+}
+
+/* 左列右对齐 */
+.au-pre-leftSide {
+  text-align: right;
+}
+
+/* 右列左对齐 + 上边距 60px（原版用 margin-top 错开两列起始位置） */
+.au-pre-rightSide {
+  margin-top: 60px;
+  text-align: left;
+}
+
+/* 跳过提示：fixed 左上角，opacity 由 JS 控制 */
+.au-clickToExitTag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 15px;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+  color: #fff;
+  z-index: 10;
+  pointer-events: none;
+  font-family: 'Phigros', 'Mina', sans-serif;
+}
+
+/* 黑色遮罩：fixed 全屏，opacity 由 JS 控制（结束时 1） */
+.au-blackOverlay {
+  height: 100%;
+  width: 100%;
+  background-color: #000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* 致谢与结尾：上下 25% 边距（原版用百分比制造大片空白） */
+.au-thanksAllHelpers,
+.au-thankYou {
+  margin-top: 25%;
+  margin-bottom: 25%;
+  text-align: center;
+  color: #fff;
+  font-family: 'Phigros', 'Mina', sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* songSelect                                                  */
+/* 源自 phigros-html5/songSelect/style.css (456 行)            */
+/* 1:1 复刻原版视觉效果：左倾斜面板 + 歌单 + 右侧曲绘/难度/分数  */
+/* + 播放按钮 + readyToLoad 滑入遮罩                            */
+/*                                                            */
+/* 所有选择器以 .song-select-root 或 .song-select-bg 为前缀，   */
+/* 避免与全局 .darkOverlay / .backBtn / .leftArea 等冲突。     */
+/* 关键帧使用 ss- 前缀（ss-fadeIn / ss-slideIn / ss-fade），    */
+/* 避免与全局同名关键帧冲突。                                   */
+/* ─────────────────────────────────────────────────────────── */
+
+/* ─── 背景层（替代原版 html background） ─────────────────── */
+/* 原版: html { background: url(InitialBackground.png) center center no-repeat fixed; background-size: cover !important; transition: all 0.3s ease-in-out; } */
+.song-select-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(/phigros/assets/images/InitialBackground.png) center center no-repeat fixed;
+  background-size: cover;
+  transition: background-image 0.3s ease-in-out;
+  z-index: 0;
+}
+
+/* ─── 内容层（替代原版 body） ───────────────────────────── */
+/* 原版: html, body { height:100%; width:100%; margin:0; padding:0; backdrop-filter:blur(10px); box-sizing:border-box; overflow:hidden; } */
+.song-select-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+/* 切片预览音频：隐藏（不占空间） */
+.song-select-root audio#slicedAudioElement {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ─── 入场遮罩 darkOverlay（原版 0%→100% opacity:1→0） ──── */
+/* 原版: div.darkOverlay { position:fixed; background:#000; top:0; left:0; height:0; width:0; z-index:999; animation:fadeIn 0.5s linear; } */
+/* 注意: 全局 @keyframes fadeIn 是 opacity 0→1（tapToStart 用），与此处需要的 1→0 相反，
+   故使用 ss-fadeIn 前缀避免冲突 */
+.song-select-root .darkOverlay {
+  position: fixed;
+  background-color: #000;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 999;
+  animation: ss-fadeIn 0.5s linear;
+}
+
+/* 入场动画：opacity 1→0，期间 height/width 100%（覆盖屏幕） */
+@keyframes ss-fadeIn {
+  0% {
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+}
+
+/* ─── 左上角返回按钮 backBtn ────────────────────────────── */
+/* 原版: div.backBtn { position:fixed; left:-15px; top:5px; width:100px; height:50px; transform:skew(-15deg); z-index:1; cursor:pointer; } */
+.song-select-root .backBtn {
+  position: fixed;
+  left: -15px;
+  top: 5px;
+  width: 100px;
+  height: 50px;
+  transform: skew(-15deg);
+  z-index: 1;
+  cursor: pointer;
+}
+.song-select-root .backBtn::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: #000;
+  z-index: 1;
+  filter: drop-shadow(#fff 5px 0);
+}
+.song-select-root .backBtn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: url(/phigros/assets/images/back.png) no-repeat center center;
+  transform: skew(15deg) scale(0.5);
+  z-index: 5;
+}
+
+/* ─── 左侧倾斜面板 leftArea ─────────────────────────────── */
+/* 原版: div.leftArea { transform:skew(-15deg); position:fixed; margin-left:100px; background-color:#00000050; height:100%; width:350px; } */
+.song-select-root .leftArea {
+  transform: skew(-15deg);
+  position: fixed;
+  margin-left: 100px;
+  background-color: #00000050;
+  height: 100%;
+  width: 350px;
+  overflow: hidden;
+}
+
+/* ─── 顶部栏 topLeftBar ─────────────────────────────────── */
+/* 原版: width:100%; height:35px; position:absolute; left:50%; top:15px; transform:translateX(-50%); z-index:999; */
+.song-select-root .topLeftBar {
+  width: 100%;
+  height: 35px;
+  position: absolute;
+  left: 50%;
+  top: 15px;
+  transform: translateX(-50%);
+  z-index: 999;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 0 20px 0 2.5px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* 排序方式标签 */
+.song-select-root .sortMode::before {
+  content: '排序方式\3000\3000\3000\3000';
+  font-size: 12px;
+  transform: scale(0.8);
+}
+
+/* settingBtn / sortMode 通用样式 */
+.song-select-root .settingBtn,
+.song-select-root .sortMode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: skew(15deg);
+  padding-left: 5px;
+  object-position: center center;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+/* 右侧图标：sort.png / setting.png */
+.song-select-root .settingBtn::after,
+.song-select-root .sortMode::after {
+  content: '';
+  height: 15px;
+  width: 15px;
+  background-position: center center;
+  background-size: cover;
+  display: block;
+  margin-left: 10px;
+  background-image: url(/phigros/assets/images/sort.png);
+}
+.song-select-root .settingBtn::after {
+  background-image: url(/phigros/assets/images/setting.png) !important;
+}
+
+/* ─── 歌单容器 songList ────────────────────────────────── */
+/* 原版: margin-top:100px; margin-bottom:100px; overflow:hidden; width:100%; */
+/* 本实现: position:absolute 始终启用（原版首次滚动才切换），top 由 inline style 设置 */
+.song-select-root .songList {
+  margin-top: 0;
+  margin-bottom: 100px;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* ─── 单曲条目容器 songItemContainer ───────────────────── */
+/* 原版: background:transparent; color:#fff; font-size:20px; margin:20px 0; height:35px; display:flex; padding:0 20px; align-items:center; justify-content:space-between; cursor:pointer; */
+.song-select-root .songItemContainer {
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  margin: 20px 0 20px 0;
+  height: 35px;
+  display: flex;
+  padding: 0 20px 0 20px;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* songItem：曲名，反倾斜还原 */
+.song-select-root .songItemContainer > .songItem {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  transform: skew(15deg);
+}
+
+/* level：难度数字，反倾斜还原 */
+.song-select-root .songItemContainer > .level {
+  transform: skew(15deg);
+  width: fit-content;
+  width: -moz-fit-content;
+  display: flex;
+  align-items: center;
+}
+
+/* level ::before（原版 historyGrade，已 display:none） */
+.song-select-root .songItemContainer > .level::before {
+  content: '';
+  display: none;
+  width: 25px;
+  height: 25px;
+  background: var(--historyGrade) no-repeat center center;
+  background-size: cover;
+  margin: 0 30px 0 0;
+}
+
+/* level ::after：难度数字 */
+.song-select-root .songItemContainer > .level::after {
+  content: attr(data-level);
+  width: 30px;
+  font-size: 28px;
+}
+
+/* ─── 选中态 songItemContainer.selected ───────────────── */
+/* 原版: all:initial; width:100%; height:50px; position:relative; left:50%; font-size:36px; transform:translateX(-50%); background-color:rgba(0,0,0,0.85); color:#fff; margin:20px 0; padding:5px 5px 10px 5px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; */
+.song-select-root .songItemContainer.selected {
+  all: initial;
+  width: 100%;
+  height: 50px;
+  position: relative;
+  left: 50%;
+  font-size: 36px;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  margin: 20px 0 20px 0;
+  padding: 5px 5px 10px 5px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* 选中态 songItem.selected：列布局，::after 显示 artist */
+.song-select-root .songItemContainer.selected > .songItem.selected {
+  display: flex;
+  flex-direction: column;
+  transform: skew(15deg);
+  margin: 0 0 0 15px;
+  padding: 0;
+  max-width: calc(100% - 100px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.song-select-root .songItemContainer.selected > .songItem.selected::after {
+  content: attr(data-artist);
+  font-size: 12px;
+  font-weight: 100;
+  margin-top: -5px;
+}
+
+/* 选中态 level：白底放大，显示难度数字 + EZ/HD/IN/AT */
+.song-select-root .songItemContainer.selected > .level {
+  height: 150% !important;
+  width: 75px !important;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #000;
+  transform: translateY(2%);
+}
+.song-select-root .songItemContainer.selected > .level::before {
+  background: none !important;
+  content: attr(data-level);
+  display: flex;
+  transform: skew(15deg);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+.song-select-root .songItemContainer.selected > .level::after {
+  content: '';
+  display: block;
+  font-size: 16px;
+  transform: skew(15deg);
+  margin: 0;
+  padding: 0;
+}
+.song-select-root .songItemContainer.selected > .level.ez::after {
+  content: 'EZ';
+}
+.song-select-root .songItemContainer.selected > .level.hd::after {
+  content: 'HD';
+}
+.song-select-root .songItemContainer.selected > .level.in::after {
+  content: 'IN';
+}
+.song-select-root .songItemContainer.selected > .level.at::after {
+  content: 'AT';
+}
+
+/* ─── 右侧倾斜面板 rightArea ───────────────────────────── */
+/* 原版: display:flex; flex-direction:column; position:fixed; right:15%; height:100%; width:400px; justify-content:center; align-items:center; transform:skew(-15deg); overflow:hidden; */
+/* transform 与 right 由 JS inline style 覆盖（skew + scale 缩放 + 动态 right） */
+.song-select-root .rightArea {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  right: 15%;
+  height: 100%;
+  width: 400px;
+  justify-content: center;
+  align-items: center;
+  transform: skew(-15deg);
+  overflow: hidden;
+}
+
+/* 曲绘容器 */
+.song-select-root .illustrationContainer {
+  width: 150%;
+  height: 245px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+/* 曲绘 img：反倾斜 + 右移 -50px（与容器 150% 宽配合） */
+.song-select-root .illustration {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  margin-right: -50px;
+  transform: skew(15deg);
+}
+
+/* 详情栏 detailBar */
+.song-select-root .detailBar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #00000055;
+  color: #fff;
+  margin-top: 15px;
+  width: 100%;
+  height: 35px;
+  box-sizing: border-box;
+}
+
+/* ─── 难度选择器 levelChooser ─────────────────────────── */
+.song-select-root .levelChooser {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  width: -moz-fit-content;
+  height: 100%;
+  background-color: #fff;
+  color: #000;
+  padding-left: 5px;
+}
+
+/* levelItem 通用 */
+.song-select-root .levelChooser > .levelItem {
+  width: 35px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  margin: 0 5px 0 5px;
+  cursor: pointer;
+}
+.song-select-root .levelChooser > .levelItem.ez {
+  margin-left: 0;
+}
+.song-select-root .levelChooser > .levelItem.at {
+  margin-left: 0;
+}
+
+/* 选中态：高 120% + 对应难度色 */
+.song-select-root .levelChooser > .levelItem.selected {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 120%;
+  background-color: #6cf;
+  color: #fff;
+}
+.song-select-root .levelChooser > .levelItem.selected.ez {
+  background-color: #51af44;
+}
+.song-select-root .levelChooser > .levelItem.selected.hd {
+  background-color: #3173b3;
+}
+.song-select-root .levelChooser > .levelItem.selected.in {
+  background-color: #be2d23;
+}
+.song-select-root .levelChooser > .levelItem.selected.at {
+  background-color: #3a3637;
+}
+
+/* ::before 显示难度数字（data-level） */
+.song-select-root .levelChooser > .levelItem::before {
+  content: attr(data-level);
+  transform: skew(15deg);
+}
+
+/* fadeOut / fadeIn 动画（原版 fade 关键帧） */
+.song-select-root .levelChooser > .levelItem.fadeOut {
+  animation: ss-fade 0.3s ease-in;
+}
+.song-select-root .levelChooser > .levelItem.fadeIn {
+  animation: ss-fade 0.3s ease-in reverse;
+}
+@keyframes ss-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ::after 显示 EZ/HD/IN/AT 标识 */
+.song-select-root .levelChooser > .levelItem::after {
+  font-size: 12px;
+  line-height: 0;
+  transform: skew(15deg) scale(0.8);
+}
+.song-select-root .levelChooser > .levelItem.ez::after {
+  content: 'EZ';
+}
+.song-select-root .levelChooser > .levelItem.hd::after {
+  content: 'HD';
+}
+.song-select-root .levelChooser > .levelItem.in::after {
+  content: 'IN';
+}
+.song-select-root .levelChooser > .levelItem.at::after {
+  content: 'AT';
+}
+
+/* ─── 分数显示 score ───────────────────────────────────── */
+.song-select-root .score {
+  width: 200px;
+  height: 100%;
+  display: flex;
+  font-size: 22px;
+  justify-content: center;
+  align-items: center;
+  order: 0;
+  transform: skew(15deg);
+}
+.song-select-root .score::before {
+  content: attr(data-acc);
+  font-size: 12px;
+  transform: scale(0.8);
+  order: 1;
+  display: flex;
+  color: #999;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: -10px;
+}
+.song-select-root .score.unplayed::after {
+  content: 'NEW';
+  font-size: 14px;
+  color: #999;
+  padding-bottom: 10px;
+  padding-right: 5px;
+  order: 2;
+  text-shadow: 0 0 5px #999;
+}
+
+/* ─── 播放按钮 playBtn ─────────────────────────────────── */
+/* 原版: position:fixed; right:0; bottom:15px; width:100px; height:85px; z-index:1; background:url(./play.png) no-repeat center center; background-size:cover; cursor:pointer; */
+.song-select-root .playBtn {
+  position: fixed;
+  right: 0px;
+  bottom: 15px;
+  width: 100px;
+  height: 85px;
+  z-index: 999;
+  background: url(/phigros/assets/images/play.png) no-repeat center center;
+  background-size: cover;
+  cursor: pointer;
+}
+
+/* ─── 滑入遮罩 readyToLoadOverlay ──────────────────────── */
+/* 初始：0 尺寸不可见 */
+.song-select-root .readyToLoadOverlay {
+  height: 0;
+  width: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+}
+
+/* 加 .go 类后：滑入动画（原版 slideIn 2s cubic-bezier(0.52,0.28,0.04,0.98)） */
+.song-select-root .readyToLoadOverlay.go {
+  height: 100%;
+  width: 999%;
+  opacity: 1;
+  z-index: 999;
+  animation: ss-slideIn 2s cubic-bezier(0.52, 0.28, 0.04, 0.98);
+  position: fixed;
+  top: 0;
+  right: -100%;
+  background-color: #000;
+  transform: skew(-15deg);
+}
+
+/* 滑入关键帧：right 100% → -100%（覆盖屏幕后继续向左滑出） */
+/* 与全局 @keyframes slideIn（transform:translateX）不同，使用 ss- 前缀 */
+@keyframes ss-slideIn {
+  0% {
+    right: 100%;
+  }
+  100% {
+    right: -100%;
+  }
+}
+
+/* ─── index 首页 ─────────────────────────────────────────── */
+/* 极简风格：黑底毛玻璃 + 居中标题 + 进入链接，与 tapToStart 统一 */
+
+.phi-index-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 背景层：InitialBackground + 双层模糊 */
+.phi-index-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(/phigros/assets/images/InitialBackground.png) center center
+    no-repeat fixed;
+  background-size: cover;
+  filter: blur(10px);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  z-index: -1;
+}
+
+.phi-index-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* "Phi.ts" 标题（白色字心 + 蓝色荧光光晕） */
+.phi-index-title {
+  margin: 0 0 40px;
+  color: #fff;
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px #87cefa, 0 0 16px #6cf, 0 0 32px rgba(100, 180, 255, 0.6),
+    0 0 48px rgba(180, 150, 255, 0.4), 0 0 64px rgba(200, 180, 255, 0.2);
+}
+
+/* "点击进入" 链接：skew 风格按钮 */
+.phi-index-enter {
+  display: inline-block;
+  padding: 12px 48px;
+  color: #fff;
+  font-size: 1.2rem;
+  text-decoration: none;
+  border: 2px solid #fff;
+  transform: skew(-15deg);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.phi-index-enter:hover {
+  background: #fff;
+  color: #000;
+}
+
+.phi-index-enter > * {
+  transform: skew(15deg);
+}
+
+/* ─── whilePlaying 游玩页面 ─────────────────────────────────── */
+/* 源自 phigros-html5/whilePlaying/style.css */
+/* 注意：原版 body 背景限定到 while-playing 页面的根容器，避免全局生效 */
+
+.while-playing-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(/phigros/assets/images/InitialBackground.png) center center no-repeat;
+  background-size: cover !important;
+  backdrop-filter: blur(100px) brightness(0.6);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas.canvas#canvas {
+  height: 100%;
+  width: calc(100vh * 1.778);
+  background-color: transparent;
+}
+
+div.pauseOverlay {
+  display: none;
+}
+
+div.pauseOverlay.visable {
+  height: 100vh;
+  width: 100vw;
+  z-index: 999;
+  backdrop-filter: contrast(0.6) brightness(0.6);
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  backdrop-filter: blur(75px);
+  font-size: 3rem;
+  color: #fff;
+}
+
+div#backBtn {
+  background: url(/phigros/whilePlaying/assets/Back7918.png) center center no-repeat;
+  background-size: 85%;
+  cursor: pointer;
+}
+
+div#restartBtn {
+  background: url(/phigros/whilePlaying/assets/Retry.png) center center no-repeat;
+  background-size: 85%;
+  cursor: pointer;
+}
+
+div#resumeBtn {
+  background: url(/phigros/whilePlaying/assets/Resume.png) center center no-repeat;
+  background-size: 85%;
+  cursor: pointer;
+}
+
+div#backBtn,
+div#restartBtn,
+div#resumeBtn {
+  height: 50px;
+  width: 50px;
+  margin: 25px;
+}
+
+/* 倒计时数字 */
+.pauseOverlay .countdown {
+  font-size: 8rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+/* tapToStart 提示 */
+div.tapToStartFrame {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+div.tapToStartFrame > div.songName {
+  font-size: 2.3rem;
+}
