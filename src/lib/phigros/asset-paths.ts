@@ -3,7 +3,11 @@
  *
  * 所有原版资源已迁移到 public/phigros/ 下，保持原目录结构。
  * 此文件集中管理所有资源路径，便于维护。
- */
+ 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
 /** 资源根路径 */
 export const PHIGROS_BASE = '/phigros';

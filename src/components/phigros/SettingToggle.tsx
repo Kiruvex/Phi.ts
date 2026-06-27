@@ -21,6 +21,7 @@
  */
 
 import { useCallback } from 'react';
+import { playClickSound } from '@/lib/phigros/page-transition';
 
 export interface SettingToggleProps {
   /** localStorage codename（仅作标记，不直接操作存储） */
@@ -40,6 +41,7 @@ export function SettingToggle({
   onChange,
 }: SettingToggleProps) {
   const handleClick = useCallback(() => {
+    playClickSound();
     onChange(!currentValue);
   }, [currentValue, onChange]);
 

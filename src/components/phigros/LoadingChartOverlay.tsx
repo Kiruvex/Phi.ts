@@ -17,7 +17,11 @@
  *   4. 难度数字 = Math.floor(meta[level + 'Ranking'])，难度标识 EZ/HD/IN/AT 根据 level class 显示
  *   5. loadingBar 白块平移 + 文字闪烁
  *   6. chartDesigner/illustrator slideAndFadeIn 渐入
- */
+ 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
 import { useEffect, useState } from 'react'
 import {
@@ -108,9 +112,12 @@ export function LoadingChartOverlay({ chart, level, visible }: LoadingChartOverl
     : null
 
   const rootStyle: React.CSSProperties = {
-    background: illustrationUrl
-      ? `url(${illustrationUrl}) center center no-repeat fixed`
-      : `url(${INITIAL_BACKGROUND}) center center no-repeat fixed`,
+    backgroundImage: illustrationUrl
+      ? `url(${illustrationUrl})`
+      : `url(${INITIAL_BACKGROUND})`,
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
     backgroundSize: 'cover',
   }
 

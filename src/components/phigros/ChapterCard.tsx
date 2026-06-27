@@ -18,10 +18,15 @@
  * 点击行为（1:1 对齐原版 chapterSelect/index.js）：
  *   - 点击 img（e.target.src != null）→ 不触发（原版 if 分支）
  *   - 点击 div（::before/::after 区域或空白处）→ onClick(codename)（原版 else 分支）
- */
+ 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
 import { useCallback } from 'react';
 import type { MouseEvent } from 'react';
+import { playClickSound } from '@/lib/phigros/page-transition';
 
 export interface ChapterCardProps {
   /** 章节显示名（如 "单曲 精选集"），显示在卡片右上角 ::before */
@@ -30,6 +35,8 @@ export interface ChapterCardProps {
   codename: string;
   /** 章节封面图 URL */
   image: string;
+  /** 是否展开（accordion 模式：同时只有一张展开）。未展开时点击仅展开，不跳转 */
+  expanded?: boolean;
   /** 点击章节（非图片区域）时的回调，参数为 codename */
   onClick: (codename: string) => void;
 }
@@ -38,6 +45,7 @@ export default function ChapterCard({
   name,
   codename,
   image,
+  expanded = true,
   onClick,
 }: ChapterCardProps) {
   const handleClick = useCallback(
@@ -49,14 +57,14 @@ export default function ChapterCard({
       if ((target as HTMLImageElement).src != null) {
         return;
       }
-      onClick(codename);
+      playClickSound(); onClick(codename);
     },
     [codename, onClick],
   );
 
   return (
     <div
-      className="cs-chapterContainer"
+      className={`cs-chapterContainer${expanded ? ' cs-expanded' : ' cs-collapsed'}`}
       data-name={name}
       data-codename={codename}
       onClick={handleClick}

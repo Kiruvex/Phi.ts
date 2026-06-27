@@ -8,11 +8,11 @@
  * 1:1 迁移自 phigros-html5/aboutUs/（index.html 1061 行 + main.js 57 行 + index.css + main.css）。
  *
  * 双阶段 SPA：
- *  - 阶段一 intro：Phigros logo + "touch to start"，点击任意处切换到 credits
+ *  - 阶段一 intro：Phi.ts 标题 + "touch to start"，点击任意处切换到 credits
  *  - 阶段二 credits：完整 credits 滚动 + 背景音乐循环 + 跳过提示
  *
  * 核心行为（与原版 1:1 对齐）：
- *  1. intro 阶段显示 Phigros logo 与 "touch to start"（letter-spacing 6s 脉动动画）
+ *  1. intro 阶段显示 Phi.ts 标题与 "touch to start"（letter-spacing 6s 脉动动画）
  *  2. 点击屏幕 → 切换到 credits 阶段（用 React state 切换 className，不真的换 CSS 文件）
  *  3. credits 阶段：
  *     - audio.src = AboutUs0.mp3 + play
@@ -153,12 +153,10 @@ export default function AboutUsPage() {
       const currentMarginTop = parseFloat(
         document.body.style.marginTop.replace('px', '') || '0'
       );
-      // 滚到底判定（1:1 还原原版 window.screenX/4 阈值；
-      // 多数桌面浏览器 screenX=0，故条件等价于 offsetHeight + marginTop < 0，
-      // 即 marginTop 需小于 -offsetHeight，credits 内容会被完整滚过）
+      // 滚到底判定：内容完全滚过视口底部
       if (
         document.body.offsetHeight + currentMarginTop <
-        window.screenX / 4
+        window.innerHeight
       ) {
         // END：清除 interval，3s 后渐显 blackOverlay，再 1s 后跳转
         stopAutoScroll();
@@ -296,16 +294,16 @@ export default function AboutUsPage() {
       />
       <div className="au-credits-root">
         <audio ref={audioRef} />
-        {/* HanHan233 写在前面 */}
+        {/* Phi.ts 写在前面 */}
         <pre className="au-pre au-pre-fromGameDirector">{FROM_GAME_DIRECTOR_1}</pre>
-        {/* Soullies 原作感言（中英双语） */}
+        {/* 致谢 */}
         <pre className="au-pre au-pre-fromGameDirector">{FROM_GAME_DIRECTOR_2}</pre>
-        {/* Pigeon Games 全体名单（12 个组别） */}
+        {/* Phi.ts 技术栈 */}
         <pre className="au-pre au-pre-credits">{CREDITS}</pre>
-        {/* SOUL NOTES RECORDS logo */}
+        {/* Phi.ts logo */}
         <img
           src={ABOUT_US.snrLogo}
-          alt="SOUL NOTES RECORDS"
+          alt="Phi.ts"
           className="au-snrLogo"
           draggable={false}
         />

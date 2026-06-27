@@ -85,7 +85,7 @@ import {
   TAP_AUDIO,
 } from '@/lib/phigros/asset-paths';
 import { type Difficulty } from '@/lib/phigros/constants';
-import { navigateWithFade } from '@/lib/phigros/page-transition';
+import { navigateWithFade, playClickSound } from '@/lib/phigros/page-transition';
 
 // ─── 客户端检测（避免 SSR/CSR hydration mismatch） ────────────
 const subscribeNoop = () => () => {};
@@ -296,14 +296,28 @@ function SongSelectContent() {
 
     // 原版: newYCoord = yCoord + e.wheelDeltaY / 8
     // wheelDeltaY 已废弃，改用 deltaY（符号取反：deltaY 正值=向下滚动）
+    // 计算可滚动范围：歌单内容高度 - 容器可见高度
+    const getMaxScroll = () => {
+      const songList = document.getElementById('songList');
+      if (!songList) return 0;
+      const container = songList.parentElement;
+      if (!container) return 0;
+      return Math.max(0, songList.offsetHeight - container.offsetHeight);
+    };
+
+    const clampY = (v: number) => {
+      const maxScroll = getMaxScroll();
+      if (v > 0) return 0;
+      if (v < -maxScroll) return -maxScroll;
+      return v;
+    };
+
     const onWheel = (e: WheelEvent) => {
-      const newY = yCoordRef.current - e.deltaY / 8;
-      // 原版: if (newYCoord <= 0 || e.wheelDeltaY < 0)
-      // wheelDeltaY < 0 等价于 deltaY > 0（向下滚动）
-      if (newY <= 0 || e.deltaY > 0) {
-        yCoordRef.current = newY;
-        setTopOffset(newY);
-      }
+      const maxScroll = getMaxScroll();
+      if (maxScroll <= 0) return;
+      const newY = clampY(yCoordRef.current - e.deltaY / 8);
+      yCoordRef.current = newY;
+      setTopOffset(newY);
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -313,16 +327,12 @@ function SongSelectContent() {
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.changedTouches.length === 0) return;
+      const maxScroll = getMaxScroll();
+      if (maxScroll <= 0) return;
       const touchY = e.changedTouches[0].clientY;
-      // 原版: newYCoord = -0.1 * (prevTouch - touchY) + yCoord
-      const newY = yCoordRef.current + -0.1 * (prevTouchYRef.current - touchY);
-      // 原版: if (newYCoord <= 0 || e.wheelDeltaY < 0)（touch 事件无 wheelDeltaY，
-      // 实际上始终为 undefined < 0 = false，故等价于 newY <= 0）
-      if (newY <= 0) {
-        yCoordRef.current = newY;
-        setTopOffset(newY);
-      }
-      // 修复原版 bug：每次 touchmove 后更新 prevTouch，避免位移累积
+      const newY = clampY(yCoordRef.current + -0.1 * (prevTouchYRef.current - touchY));
+      yCoordRef.current = newY;
+      setTopOffset(newY);
       prevTouchYRef.current = touchY;
     };
 
@@ -350,10 +360,12 @@ function SongSelectContent() {
   // ─── 事件处理 ───────────────────────────────────────────────
 
   const handleBack = useCallback(() => {
+    playClickSound();
     navigateWithFade(router, '/chapter-select');
   }, [router]);
 
   const handleSettings = useCallback(() => {
+    playClickSound();
     navigateWithFade(router, '/settings');
   }, [router]);
 

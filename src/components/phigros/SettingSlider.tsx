@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
+import { playClickSound } from '@/lib/phigros/page-transition';
 
 /** 滑块档位定义 */
 export interface SettingOption {
@@ -82,8 +83,8 @@ export function SettingSlider({
   const marginLeft = calcMarginLeft(currentIndex, total);
   const displayedValue = opts[currentIndex]?.label ?? '';
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+      playClickSound();
       const slider = e.currentTarget;
       const rect = slider.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;

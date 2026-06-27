@@ -78,3 +78,13 @@ export function navigateWithFade(
 export function hideRouteOverlay() {
   hideOverlay();
 }
+
+/** 播放按钮点击音效（Tap2.wav） */
+export function playClickSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const audio = new Audio('/phigros/assets/audio/Tap1.wav');
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+  } catch {}
+}

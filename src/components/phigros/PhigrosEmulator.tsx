@@ -22,7 +22,6 @@ import { navigateWithFade } from '@/lib/phigros/page-transition';
 import {
   EMULATOR_IMAGES,
   EXTERNAL_LIBS,
-  TAP_AUDIO,
 } from '@/lib/phigros/asset-paths';
 
 interface PhigrosEmulatorProps {
@@ -31,7 +30,6 @@ interface PhigrosEmulatorProps {
   chapter: string;
 }
 
-type PauseState = 'hidden' | 'paused' | 'countdown-3' | 'countdown-2' | 'countdown-1';
 
 export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulatorProps) {
   const router = useRouter();
@@ -66,7 +64,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
   // 状态
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
-  const [pauseState, setPauseState] = useState<PauseState>('hidden');
   const [error, setError] = useState<string | null>(null);
 
   /** 动态加载外部库（oggmented + stackblur） */
@@ -141,15 +138,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
         onReady: () => {
           if (!cancelled) setReady(true);
         },
-        onPause: () => {
-          setPauseState('paused');
-        },
-        onCountdown: (step) => {
-          setPauseState(`countdown-${step}` as PauseState);
-        },
-        onResume: () => {
-          setPauseState('hidden');
-        },
       });
 
       emulatorRef.current = emulator;
@@ -158,7 +146,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
       if (cancelled) return;
 
       // 应用设置到隐藏配置面板
-      emulatorRef.current; // 引用以确保存在
     };
 
     init().catch((err) => {
@@ -174,7 +161,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
         emulatorRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play, level, chapter]);
 
   /** 应用设置到隐藏配置面板（settings 变化时同步） */
@@ -194,7 +180,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
       showTransition: showTransitionRef.current,
       autoPlay: autoPlayRef.current,
     };
-    const values: Record<string, string | boolean> = {
+    const values: Record<string, string | boolean | number> = {
       'input-offset': settings.inputOffset,
       'select-scale-ratio': settings.selectScaleRatio,
       'select-global-alpha': settings.selectGlobalAlpha,
@@ -234,37 +220,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
     }
   }, [ready, settings.autoFullscreen]);
 
-  /** 暂停按钮点击 */
-  const handlePauseClick = useCallback(() => {
-    if (emulatorRef.current) {
-      emulatorRef.current.pauseToggle();
-    }
-  }, []);
-
-  /** 返回按钮 */
-  const handleBack = useCallback(() => {
-    // 播放音效
-    const audio = new Audio(TAP_AUDIO(2));
-    audio.play().catch(() => {});
-    setTimeout(() => {
-      navigateWithFade(router, `/song-select?c=${chapter}`);
-    }, 500);
-  }, [router, chapter]);
-
-  /** 重试按钮 */
-  const handleRestart = useCallback(() => {
-    if (emulatorRef.current) {
-      emulatorRef.current.replay();
-    }
-  }, []);
-
-  /** 继续按钮 */
-  const handleResume = useCallback(() => {
-    if (emulatorRef.current) {
-      emulatorRef.current.pauseToggle();
-    }
-  }, []);
-
   return (
     <div className="while-playing-root">
       {/* 游戏 canvas */}
@@ -272,26 +227,16 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
 
       {/* 隐藏的触发按钮（模拟器通过 deps.elements 访问） */}
       <input ref={btnPlayRef} id="btn-play" className="hide" type="button" defaultValue="播放" />
-      <input ref={btnPauseRef} id="btn-pause" className="hide" type="button" defaultValue="暂停" onClick={handlePauseClick} />
+      <input ref={btnPauseRef} id="btn-pause" className="hide" type="button" defaultValue="暂停" />
 
-      {/* 暂停遮罩 */}
+      {/* 暂停遮罩：纯 DOM 操作，模拟器控制 visable 类和内容。
+          React 只渲染空 div，innerHTML 和事件由模拟器在 init 里设置。
+          不用 dangerouslySetInnerHTML 避免 React re-render 覆盖 addEventListener */}
       <div
         ref={pauseOverlayRef}
         id="pauseOverlay"
-        className={`pauseOverlay${pauseState !== 'hidden' ? ' visable' : ''}`}
-      >
-        <audio src={TAP_AUDIO(2)} id="tap2" />
-        {pauseState === 'paused' && (
-          <>
-            <div id="backBtn" onClick={handleBack} />
-            <div id="restartBtn" onClick={handleRestart} />
-            <div id="resumeBtn" onClick={handleResume} />
-          </>
-        )}
-        {pauseState === 'countdown-3' && <div className="countdown">3</div>}
-        {pauseState === 'countdown-2' && <div className="countdown">2</div>}
-        {pauseState === 'countdown-1' && <div className="countdown">1</div>}
-      </div>
+        className="pauseOverlay"
+      />
 
       {/* 隐藏配置面板（模拟器通过 deps.elements 访问 value/checked） */}
       <div className="hide">

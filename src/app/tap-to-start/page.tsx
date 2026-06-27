@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { TOUCH_TO_START_AUDIO } from '@/lib/phigros/asset-paths';
+import { playClickSound } from '@/lib/phigros/page-transition';
 
 // 注：背景图 INITIAL_BACKGROUND 通过 phigros.css 中的 .tts-bg-1 / .tts-bg-2
 // background-image 引用，无需在 JSX 中作为 <img> 渲染。
@@ -44,6 +45,7 @@ export default function TapToStartPage() {
   /** 防止点击被触发多次（原版未做防护，但 React Strict Mode 下 useEffect 会重跑，
    *  且用户在 510ms 内可能多次点击，使用 ref 保证只生效一次） */
   const clickedRef = useRef(false);
+  const particlesRef = useRef<HTMLDivElement>(null);
 
   /**
    * 点击处理：插入 fadeIn 遮罩 + 启动音量渐弱 + 510ms 后跳转。
@@ -52,6 +54,7 @@ export default function TapToStartPage() {
   const handleClick = useCallback(() => {
     if (clickedRef.current) return;
     clickedRef.current = true;
+    try { const a = new Audio('/phigros/assets/audio/Tap7.wav'); a.play().catch(()=>{}); } catch {}
 
     // 1. 插入全屏黑色 fadeIn 遮罩
     const fadeInElem = document.createElement('div');
@@ -93,6 +96,24 @@ export default function TapToStartPage() {
       }
     }, 500);
   }, [router]);
+
+  // 生成气泡粒子
+  useEffect(() => {
+    const container = particlesRef.current;
+    if (!container) return;
+    for (let i = 0; i < 8; i++) {
+      const p = document.createElement('div');
+      p.className = 'phi-particle';
+      const size = 8 + Math.random() * 20;
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.animationDelay = `${Math.random() * 12}s`;
+      p.style.animationDuration = `${10 + Math.random() * 6}s`;
+      container.appendChild(p);
+    }
+    return () => { container.innerHTML = ''; };
+  }, []);
 
   useEffect(() => {
     // 等价于原版 DOMContentLoaded 内的 audio.play()
@@ -168,6 +189,7 @@ export default function TapToStartPage() {
       {/* 三层背景模糊（原版 html + html::before + body backdrop-filter） */}
       <div className="tts-bg-1" aria-hidden="true" />
       <div className="tts-bg-2" aria-hidden="true" />
+      <div className="phi-particles" ref={particlesRef} aria-hidden="true" />
 
       {/* 内容容器：flex 列居中 */}
       <main className="tts-container">

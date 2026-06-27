@@ -54,6 +54,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "skills",
     // Legacy reference source (original phigros-html5 by lchzh3473 & HanHan233)
     "phigros-html5/**",
+    "phigros-on-html/**",
     // Vendored minified libraries (oggmented / stackblur / createImageBitmap polyfill)
     "public/phigros/whilePlaying/assets/**/*.js",
   ]

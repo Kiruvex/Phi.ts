@@ -39,7 +39,7 @@ import { useRouter } from 'next/navigation';
 import { usePhigrosSettings } from '@/hooks/use-phigros-settings';
 import { SettingSlider } from '@/components/phigros/SettingSlider';
 import { SettingToggle } from '@/components/phigros/SettingToggle';
-import { navigateWithFade } from '@/lib/phigros/page-transition';
+import { navigateWithFade, playClickSound } from '@/lib/phigros/page-transition';
 import {
   SCALE_RATIO_OPTIONS,
   GLOBAL_ALPHA_OPTIONS,
@@ -327,14 +327,17 @@ export default function SettingsPage() {
   // 返回按钮：原版 saveSettings() + 跳转 chapterSelect
   // zustand persist 已实时写入 localStorage，无需显式 save
   const handleBack = useCallback(() => {
+    playClickSound();
     navigateWithFade(router, '/chapter-select');
   }, [router]);
 
   const handleAboutUs = useCallback(() => {
+    playClickSound();
     navigateWithFade(router, '/about-us');
   }, [router]);
 
   const handleClearData = useCallback(() => {
+    playClickSound();
     if (typeof window !== 'undefined') {
       window.localStorage.clear();
     }

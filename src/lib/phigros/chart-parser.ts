@@ -14,7 +14,11 @@
  * 注意: 本文件为 1:1 移植，未做任何优化或重构。
  *       原版的 message.sendWarning(msg) 已替换为 console.warn(msg)，
  *       警告文案保持一致。fuckarr / qwqChart / qwqwq 等原版变量名保留。
- */
+ 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
 
 // ─── 类型定义 ──────────────────────────────────────────
 

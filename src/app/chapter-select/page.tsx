@@ -30,7 +30,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ChapterCard from '@/components/phigros/ChapterCard';
-import { navigateWithFade } from '@/lib/phigros/page-transition';
+import ZipUploadCard from '@/components/phigros/ZipUploadCard';
+import type { CustomChartData } from '@/components/phigros/ZipUploadCard';
+import { navigateWithFade, playClickSound } from '@/lib/phigros/page-transition';
 import {
   CHAPTER_IMAGES,
   CHAPTER_SELECT_AUDIO,
@@ -65,11 +67,29 @@ export default function ChapterSelectPage() {
   const [fadeIn, setFadeIn] = useState(false);
 
   /**
-   * 点击章节：播放 Tap1.wav + darkOverlay 加 cs-fadeIn 类 + 400ms 后跳转。
-   * 1:1 对齐原版 chapterSelect/index.js 的 chapterContainer click 监听器。
+   * 当前展开的卡片 codename（accordion 模式：同时只有一张卡片展开）。
+   * 默认 'single'（单曲 精选集），点击其他卡片时切换。
+   * 参考 phigros-on-html home.css 的 .select.focus 行为。
+   */
+  const [expandedCard, setExpandedCard] = useState<string>('single');
+
+  /**
+   * 点击章节卡片：
+   *  - 若该卡片未展开 → 仅展开它（折叠其他），不跳转
+   *  - 若该卡片已展开 → 执行原版跳转逻辑（Tap1 + darkOverlay + 400ms 后 song-select）
+   *
+   * 这样形成"第一次点击展开，第二次点击进入"的两段式交互，
+   * 与 phigros-on-html 的 .select.focus 行为一致。
    */
   const handleChapterClick = useCallback(
     (codename: string) => {
+      // 未展开 → 先展开，不跳转
+      if (expandedCard !== codename) {
+        setExpandedCard(codename);
+        return;
+      }
+
+      // 已展开 → 执行原版跳转逻辑
       // 1. 创建 audio 播放 Tap1.wav（与原版 document.createElement('audio') 一致）
       const clickAudio = new Audio(TAP_AUDIO(1));
       clickAudio.play().catch(() => {
@@ -81,7 +101,6 @@ export default function ChapterSelectPage() {
 
       // 3. 400ms 后跳转（darkOverlay 已覆盖屏幕，用全局遮罩保持连续）
       navigateTimerRef.current = setTimeout(() => {
-        // 创建全局遮罩保持过渡连续（darkOverlay 随页面卸载会消失）
         const overlay = document.getElementById('phi-route-overlay');
         if (!overlay) {
           const o = document.createElement('div');
@@ -92,11 +111,39 @@ export default function ChapterSelectPage() {
         router.push(`/song-select?c=${codename}`);
       }, 400);
     },
+    [router, expandedCard],
+  );
+
+  /**
+   * 点击 ZIP 上传卡片：
+   *  - 若未展开 → 仅展开它（折叠单曲 精选集），不打开文件选择器
+   *  - 若已展开 → 打开文件选择器（原 handleFileChange 逻辑在 ZipUploadCard 内）
+   */
+  const handleZipUpload = useCallback(
+    (_data: CustomChartData) => {
+      // 已展开才会被调用（ZipUploadCard 内部判断），直接跳转
+      const overlay = document.getElementById('phi-route-overlay');
+      if (!overlay) {
+        const o = document.createElement('div');
+        o.id = 'phi-route-overlay';
+        o.style.cssText = 'position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:99999;';
+        document.body.appendChild(o);
+      }
+      router.push('/while-playing?play=custom&l=in&c=custom');
+    },
     [router],
   );
 
+  /** ZIP 卡片点击：未展开时先展开 */
+  const handleZipCardClick = useCallback(() => {
+    if (expandedCard !== 'custom') {
+      setExpandedCard('custom');
+    }
+  }, [expandedCard]);
+
   /** 设置按钮：跳转 /settings */
   const handleSettingClick = useCallback(() => {
+    playClickSound();
     navigateWithFade(router, '/settings');
   }, [router]);
 
@@ -187,9 +234,15 @@ export default function ChapterSelectPage() {
             name={ch.name}
             codename={ch.codename}
             image={ch.image}
+            expanded={expandedCard === ch.codename}
             onClick={handleChapterClick}
           />
         ))}
+        <ZipUploadCard
+          expanded={expandedCard === 'custom'}
+          onClick={handleZipUpload}
+          onExpand={handleZipCardClick}
+        />
       </main>
 
       {/* 设置按钮（右下角固定，::before 黑色斜切底 + ::after setting.png 图标） */}

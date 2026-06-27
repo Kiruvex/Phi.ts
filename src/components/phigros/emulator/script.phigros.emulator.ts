@@ -73,12 +73,6 @@ export interface EmulatorDeps {
   onBack: () => void;
   /** 资源就绪回调 */
   onReady: () => void;
-  /** 暂停回调（组件显示 pauseOverlay） */
-  onPause: () => void;
-  /** 倒计时回调（组件显示 3/2/1） */
-  onCountdown: (step: 3 | 2 | 1) => void;
-  /** 恢复回调（组件隐藏 pauseOverlay，恢复按钮） */
-  onResume: () => void;
 }
 
 export interface EmulatorInstance {
@@ -320,7 +314,7 @@ function resizeCanvas() {
         }
         realWidth = Math.floor(realWidth);
         realHeight = Math.floor(realHeight);
-        canvas.style.cssText += `;width:${realWidth}px;height:${realHeight}px`;
+        canvas.style.cssText += `;width:${realWidth}px;height:${realHeight}px;pointer-events:auto;touch-action:none`;
         canvas.width = realWidth * devicePixelRatio;
         canvas.height = realHeight * devicePixelRatio;
         canvasos.width = Math.min(realWidth, realHeight * AspectRatio) * devicePixelRatio;
@@ -390,7 +384,8 @@ const specialClick = {
         }],
         click(id) {
                 const now = Date.now();
-                if (now - this.time[id] < 300) this.func[id]();
+                // id=0（左上角暂停）改为单击触发，其余保持双击
+                if (id === 0 || now - this.time[id] < 300) this.func[id]();
                 this.time[id] = now;
         }
 }
@@ -403,10 +398,13 @@ class Click {
         }
         static activate(offsetX, offsetY) {
                 taps.push(new Click(offsetX, offsetY));
-                if (offsetX < lineScale * 1.5 && offsetY < lineScale * 1.5) specialClick.click(0);
-                if (offsetX > canvasos.width - lineScale * 1.5 && offsetY < lineScale * 1.5) specialClick.click(1);
-                if (offsetX < lineScale * 1.5 && offsetY > canvasos.height - lineScale * 1.5) specialClick.click(2);
-                if (offsetX > canvasos.width - lineScale * 1.5 && offsetY > canvasos.height - lineScale * 1.5) specialClick.click(3);
+                // 角落热区（暂停/重启/特殊）：原版 lineScale*1.5，放大到 lineScale*3
+                // 让点击更容易。lineScale 已含 DPR，无需额外缩放。
+                const hotZone = lineScale * 3;
+                if (offsetX < hotZone && offsetY < hotZone) specialClick.click(0);
+                if (offsetX > canvasos.width - hotZone && offsetY < hotZone) specialClick.click(1);
+                if (offsetX < hotZone && offsetY > canvasos.height - hotZone) specialClick.click(2);
+                if (offsetX > canvasos.width - hotZone && offsetY > canvasos.height - hotZone) specialClick.click(3);
                 if (qwqEnd.second > 0) qwq[3] = qwq[3] > 0 ? -qwqEnd.second : qwqEnd.second;
                 return new Click(offsetX, offsetY);
         }
@@ -1246,28 +1244,35 @@ const qwqEnd = new Timer();
 //              this.value = "播放";
 //      }
 // });
-//暂停监听器（修复 Bug 4：原版用 innerHTML 重写丢事件监听器，改为回调通知组件）
+//暂停监听器（回到原版纯 DOM 操作，不用 React 状态管理 pauseOverlay）
 btnPause.addEventListener("click", function () {
         if (this.classList.contains("disabled") || btnPlay.value == "播放") return;
+        const overlay = deps.elements.pauseOverlay;
         if (this.value == "暂停") {
                 clearInterval(window.LevelOverTimeOut);
                 let pauseAudio=document.createElement('audio');
                 pauseAudio.src="/phigros/assets/audio/Tap6.wav";
                 pauseAudio.play();
                 qwqIn.pause();
-                deps.onPause(); // 通知组件显示 pauseOverlay
+                overlay.classList.add('visable');
                 if (showTransition.checked && isOutStart) qwqOut.pause();
                 isPaused = true;
                 this.value = "继续";
                 curTime = timeBgm;
                 while (stopPlaying.length) stopPlaying.shift()();
         } else {
-                // 倒计时 3-2-1，通过回调通知组件更新 UI（不操作 innerHTML）
-                deps.onCountdown(3);
-                setTimeout(() => { deps.onCountdown(2); }, 1000);
-                setTimeout(() => { deps.onCountdown(1); }, 2000);
+                // 倒计时 3-2-1，直接操作 DOM
+                overlay.textContent = "3";
+                setTimeout(() => { overlay.textContent = "2"; }, 1000);
+                setTimeout(() => { overlay.textContent = "1"; }, 2000);
                 setTimeout(()=>{
-                        deps.onResume(); // 通知组件隐藏 pauseOverlay，恢复按钮
+                        overlay.classList.remove('visable');
+                        // 恢复按钮 HTML（原版用 innerHTML 重写，这里也用 innerHTML）
+                        overlay.innerHTML = '<audio src="/phigros/assets/audio/Tap2.wav" id="tap2"></audio><div id="backBtn"></div><div id="restartBtn"></div><div id="resumeBtn"></div>';
+                        // 重新绑定按钮事件（innerHTML 重写后 DOM 引用丢失）
+                        document.getElementById('backBtn')?.addEventListener('click', () => deps.onBack());
+                        document.getElementById('restartBtn')?.addEventListener('click', () => replay());
+                        document.getElementById('resumeBtn')?.addEventListener('click', () => btnPause.click());
                         qwqIn.play();
                         if (showTransition.checked && isOutStart) qwqOut.play();
                         isPaused = false;
@@ -1313,7 +1318,7 @@ function loop() {
         ctx.globalAlpha = 0.8;
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillText(`Phigros HTML5 Edition By lchzh3473 & HanHan233`, (canvas.width + canvasos.width) / 2 - lineScale * 0.1, canvas.height - lineScale * 0.2);
+        ctx.fillText(`Powered By Phi.ts`, (canvas.width + canvasos.width) / 2 - lineScale * 0.1, canvas.height - lineScale * 0.2);
         stopDrawing = requestAnimationFrame(loop); //回调更新动画
 }
 
@@ -1412,8 +1417,8 @@ function calcqwq(now) {
         frameTimer.addTick(); //计算fps
         clickEvents0.defilter(i => i.time++ > 0); //清除打击特效
         clickEvents1.defilter(i => now >= i.time + i.duration); //清除打击特效
-        for (const i in mouse) mouse[i] instanceof Click && mouse[i].animate();
-        for (const i in touch) touch[i] instanceof Click && touch[i].animate();
+        for (const i in mouse) { if (mouse[i] instanceof Click) mouse[i].animate(); }
+        for (const i in touch) { if (touch[i] instanceof Click) touch[i].animate(); }
 }
 
 function qwqdraw1(now) {
@@ -2361,7 +2366,6 @@ function csv2array(data, isObject) {
 // ─── 原版 index.js 逻辑整合（谱面加载 + btnPlay + replay + tapToStart） ───
 
 // backBtn 点击返回选歌页
-btnPause; // 引用以确保 btnPause 已初始化
 
 // 闭包局部变量（原版 index.js 用 window 全局变量在两 script 间通信，工厂函数内用局部变量）
 let chartString = "";
@@ -2458,21 +2462,36 @@ function applySettings(settings: Record<string, any>) {
         }
 }
 
-// replay 函数（原版 index.js）
+// replay 函数（原版 index.js：btnPlay.click() 两次 = 停止再启动）
+// 改为同步逻辑：先停止，再重新开始
 function replay() {
         deps.elements.pauseOverlay.classList.remove("visable");
-        btnPlayClick();
+        // 停止当前游戏（btnPlayClickHandler 的"停止"分支）
+        if (btnPlay.value == "停止") {
+                while (stopPlaying.length) stopPlaying.shift()();
+                cancelAnimationFrame(stopDrawing);
+                fucktemp = false;
+                fucktemp2 = false;
+                clickEvents0.length = 0;
+                clickEvents1.length = 0;
+                qwqIn.reset();
+                qwqOut.reset();
+                qwqEnd.reset();
+                curTime = 0;
+                curTimestamp = 0;
+                duration = 0;
+                btnPlay.value = "播放";
+        }
+        // 重新解析谱面
         try {
-                Renderer.chart = chart123(
-                        chartp23(chartString, undefined)
-                );
+                Renderer.chart = chart123(chartp23(chartString, undefined));
         } catch (e) {}
-        btnPlayClick();
+        // 启动游戏（btnPlayClickHandler 的"播放"分支）
+        btnPlayClickHandler();
 }
 
 // btnPlay 点击逻辑（原版 index.js 的 btn-play click 监听器）
 async function btnPlayClickHandler() {
-        Renderer = Renderer || Renderer;
         btnPause.value = "暂停";
         if (btnPlay.value == "播放") {
                 stopPlaying.push(playSound(res["mute"], true, false, 0));
@@ -2520,6 +2539,19 @@ async function btnPlayClickHandler() {
         }
 }
 
+// 绑定初始 pauseOverlay 按钮事件（dangerouslySetInnerHTML 创建的按钮）
+// 延迟一帧确保 React 已渲染 dangerouslySetInnerHTML 内容
+function bindPauseOverlayButtons() {
+        requestAnimationFrame(() => {
+                // 设置初始 innerHTML（按钮 + audio）
+                deps.elements.pauseOverlay.innerHTML = '<audio src="/phigros/assets/audio/Tap2.wav" id="tap2"></audio><div id="backBtn"></div><div id="restartBtn"></div><div id="resumeBtn"></div>';
+                // 绑定事件
+                document.getElementById('backBtn')?.addEventListener('click', () => deps.onBack());
+                document.getElementById('restartBtn')?.addEventListener('click', () => replay());
+                document.getElementById('resumeBtn')?.addEventListener('click', () => btnPause.click());
+        });
+}
+
 // ─── 工厂函数返回值 ─────────────────────────────────────────
 
 let _destroyed = false;
@@ -2528,6 +2560,8 @@ let _chartLoadPromise: Promise<void> | null = null;
 return {
         async init() {
                 if (_destroyed) return;
+                // 绑定初始 pauseOverlay 按钮事件
+                bindPauseOverlayButtons();
                 // 加载内置资源
                 await initResources();
                 // 并发加载谱面资源

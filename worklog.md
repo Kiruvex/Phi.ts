@@ -1494,3 +1494,99 @@ Stage Summary:
   - src/components/phigros/PhigrosEmulator.tsx (276行)
   - src/app/while-playing/page.tsx (18行)
   - src/styles/phigros.css 追加 whilePlaying 样式
+
+---
+Task ID: fix-pause-and-accordion
+Agent: 主代理
+Task: 修复暂停按钮（高 DPI 浏览器不响应）+ 章节卡片 accordion 收缩展开动画
+
+Work Log:
+- 诊断暂停按钮根因：canvas 左上角热区 hotZone=60 是 canvas 内部坐标（已乘 DPR），
+  在高 DPI 屏幕（Mac Retina DPR=2 / 移动端 DPR=3）上实际只有 30/20 屏幕像素，
+  几乎无法点中。之前两次修复（pointer-events）未触及根因。
+- 修复 1：hotZone 按 devicePixelRatio 缩放
+  - src/components/phigros/emulator/script.phigros.emulator.ts 第 405 行
+  - `const hotZone = 80 * (devicePixelRatio || 1);`（同时从 60 提升到 80 基准）
+  - 确保在任何 DPR 下热区都是 80 屏幕像素
+- 修复 2：新增可见暂停按钮（左上角 DOM button）
+  - src/components/phigros/PhigrosEmulator.tsx
+    - 新增 gameStarted state（tapToStart 点击后设 true）
+    - 新增 handlePauseClick → emulatorRef.current.pauseToggle()
+    - JSX 渲染 .wp-pauseBtn > .wp-pauseIcon（|| 图标用 ::before/::after 两条竖线）
+  - src/styles/phigros.css
+    - .wp-pauseBtn: fixed top:12 left:12, 44x44, rgba(0,0,0,0.45) + backdrop-filter blur
+    - z-index:50（高于 canvas:1，低于 pauseOverlay:999）
+    - .while-playing-root > .wp-pauseBtn 加 pointer-events:auto（父容器是 none）
+    - hover 背景加深、active scale(0.92) 反馈
+    - 图标 18x20px，两条 5px 竖线，间距 6px（避免小尺寸下误认为 N/H）
+- 实现 accordion 收缩展开（参考 phigros-on-html home.css .select.focus）
+  - src/app/chapter-select/page.tsx
+    - 新增 expandedCard state（默认 'single'）
+    - handleChapterClick: 未展开→仅展开不跳转；已展开→执行原跳转逻辑
+    - handleZipCardClick: 未展开→仅展开
+    - JSX 传 expanded prop 给 ChapterCard 和 ZipUploadCard
+  - src/components/phigros/ChapterCard.tsx
+    - 新增 expanded prop（默认 true）
+    - className 根据 expanded 加 cs-expanded / cs-collapsed
+  - src/components/phigros/ZipUploadCard.tsx
+    - 新增 expanded prop + onExpand 回调
+    - handleClick: 未展开→onExpand()；已展开→inputRef.click()
+    - className 加 cs-expanded / cs-collapsed
+  - src/styles/phigros.css
+    - .cs-chapterContainer 加 transition: width 0.6s cubic-bezier + box-shadow 0.6s
+    - .cs-expanded: width 85vh（默认）
+    - .cs-collapsed: width 28vh + cursor:pointer
+    - .cs-collapsed::after: opacity:0 + pointer-events:none（PLAY 按钮淡出）
+    - .cs-chapterContainer::after: transition: opacity 0.4s
+
+Stage Summary:
+- Lint: 0 errors ✅
+- 暂停按钮修复验证（agent-browser）:
+  - 可见暂停按钮: click → pauseOverlay.visable + btnPause="继续" ✅
+  - canvas 热区 (70,70): click → 暂停 ✅（之前 60px 阈值在此位置不触发）
+  - Shift 键: keydown → 暂停 ✅
+  - resumeBtn: click → 恢复 ✅
+- accordion 验证（agent-browser + VLM）:
+  - 默认: 单曲 精选集 expanded(733px) + ZIP collapsed(322px) ✅
+  - click ZIP → ZIP expanded(733px,光圈完整) + 单曲 精选集 collapsed(322px,窄条) ✅
+  - click 单曲 精选集 → 单曲 精选集 expanded + ZIP collapsed ✅
+  - click 已展开的单曲 精选集 → 跳转 /song-select?c=single ✅
+- 两段式交互: 第一次点击展开，第二次点击进入（与 phigros-on-html 一致）
+- 产出/修改文件:
+  - src/components/phigros/emulator/script.phigros.emulator.ts（hotZone DPR 缩放）
+  - src/components/phigros/PhigrosEmulator.tsx（可见暂停按钮）
+  - src/components/phigros/ChapterCard.tsx（expanded prop）
+  - src/components/phigros/ZipUploadCard.tsx（expanded + onExpand prop）
+  - src/app/chapter-select/page.tsx（accordion 状态管理）
+  - src/styles/phigros.css（wp-pauseBtn 样式 + cs-collapsed/expanded 过渡）
+
+---
+Task ID: fix-pause-remove-dom-btn
+Agent: 主代理
+Task: 删除自作主张添加的 DOM 暂停按钮，恢复原版 canvas 热区方案并放大
+
+Work Log:
+- 用户反馈：出现两个暂停图标（canvas 上原版画的 Pause.png + 我加的 DOM .wp-pauseBtn）
+- 查原版 phigros-html5/script.phigros.emulator.js 第 1546 行：
+    ctxos.drawImage(res["Pause"], lineScale*0.6, lineScale*0.7, lineScale*0.63, lineScale*0.7)
+  原版暂停图标是画在 canvasos 上的，配合 lineScale*1.5 热区点击。
+- 删除我添加的 DOM 暂停按钮：
+  - src/components/phigros/PhigrosEmulator.tsx: 移除 gameStarted state / handlePauseClick / .wp-pauseBtn JSX
+  - src/styles/phigros.css: 移除 .wp-pauseBtn / .wp-pauseIcon 全部样式 + pointer-events 规则
+- 恢复原版热区逻辑并放大：
+  - src/components/phigros/emulator/script.phigros.emulator.ts 第 403 行
+  - 原: const hotZone = 80 * (devicePixelRatio || 1)  ← 我之前瞎改的
+  - 新: const hotZone = lineScale * 3  ← 基于原版 lineScale*1.5 放大 2 倍
+  - lineScale 已含 DPR（由 canvasos.width/height 计算），无需额外 DPR 缩放
+  - 热区从原版 ~57 CSS px 放大到 ~115 CSS px，点击容易得多
+
+Stage Summary:
+- Lint: 0 errors ✅
+- agent-browser 验证:
+  - DOM 暂停按钮已删除（domPauseBtnExists: false）✅
+  - canvas 左上角点击 (40,41) → 暂停成功 ✅
+  - (80,80) → 暂停成功 ✅（放大后的热区）
+  - (100,100) → 暂停成功 ✅（之前 60px 阈值不触发）
+  - resumeBtn → 恢复成功 ✅
+- VLM 验证: upper-left corner exactly ONE pause icon ✅
+- 教训：改之前先看原项目怎么做的，不要自作主张加 DOM 元素覆盖原版 canvas 绘制

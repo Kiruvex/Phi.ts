@@ -30,6 +30,7 @@
 
 import type { SongMeta } from './SongList';
 import type { Difficulty } from '@/lib/phigros/constants';
+import { playClickSound } from '@/lib/phigros/page-transition';
 
 export interface SongItemProps {
   /** 谱面元数据 */
@@ -66,7 +67,7 @@ export function SongItem({
   return (
     <div
       className={containerClass}
-      onClick={onSelect}
+      onClick={() => { playClickSound(); onSelect(); }}
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
