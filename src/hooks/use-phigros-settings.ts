@@ -38,7 +38,8 @@ export type SettingsField =
   | 'imageBlur'
   | 'feedback'
   | 'showPoint'
-  | 'showTransition';
+  | 'showTransition'
+  | 'autoPlay';
 
 /** Phigros 设置 store 接口 */
 export interface PhigrosSettings {
@@ -68,6 +69,8 @@ export interface PhigrosSettings {
   showPoint: boolean;
   /** 过渡动画 */
   showTransition: boolean;
+  /** 自动游玩（Autoplay，开启后不写入成绩） */
+  autoPlay: boolean;
   /** 设置某一项的值（同时写入 localStorage） */
   setSetting: (key: string, value: number | boolean) => void;
   /** 从 localStorage 重新加载所有设置 */
@@ -89,6 +92,7 @@ const FIELD_TO_STORAGE_KEY: Record<SettingsField, string> = {
   feedback: STORAGE_KEYS.feedback,
   showPoint: STORAGE_KEYS.showPoint,
   showTransition: STORAGE_KEYS.showTransition,
+  autoPlay: STORAGE_KEYS.autoPlay,
 };
 
 /** Boolean 字段集合（存储为 "true"/"false" 字符串） */
@@ -102,6 +106,7 @@ const BOOLEAN_FIELDS: ReadonlySet<SettingsField> = new Set<SettingsField>([
   'feedback',
   'showPoint',
   'showTransition',
+  'autoPlay',
 ]);
 
 /** 所有设置字段列表（用于遍历） */
@@ -126,6 +131,7 @@ function getDefaultState(): SettingsState {
     feedback: SETTING_DEFAULTS[STORAGE_KEYS.feedback],
     showPoint: SETTING_DEFAULTS[STORAGE_KEYS.showPoint],
     showTransition: SETTING_DEFAULTS[STORAGE_KEYS.showTransition],
+    autoPlay: SETTING_DEFAULTS[STORAGE_KEYS.autoPlay],
   };
 }
 

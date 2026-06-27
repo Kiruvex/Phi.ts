@@ -73,7 +73,7 @@ export default function TapToStartPage() {
       }, 10);
     }
 
-    // 3. 510ms 后根据 localStorage 是否为空跳转
+    // 3. 510ms 后根据 localStorage 是否为空跳转（fadeIn 遮罩已覆盖，直接 push）
     navigateTimerRef.current = setTimeout(() => {
       if (window.localStorage.length === 0) {
         router.push('/settings');
@@ -81,6 +81,17 @@ export default function TapToStartPage() {
         router.push('/chapter-select');
       }
     }, 510);
+    // 注：fadeIn 遮罩会随页面卸载消失，新页面 mount 时 PhigrosProvider
+    // 调用 hideRouteOverlay 不会有遮罩。为保持过渡连续，在跳转前显示全局遮罩
+    setTimeout(() => {
+      const overlay = document.getElementById('phi-route-overlay');
+      if (!overlay) {
+        const o = document.createElement('div');
+        o.id = 'phi-route-overlay';
+        o.style.cssText = 'position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:99999;';
+        document.body.appendChild(o);
+      }
+    }, 500);
   }, [router]);
 
   useEffect(() => {

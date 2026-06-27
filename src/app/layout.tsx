@@ -3,6 +3,7 @@ import "./globals.css";
 import "../styles/phigros.css";
 import { Toaster } from "@/components/ui/toaster";
 import { PhigrosProvider } from "@/components/phigros/PhigrosProvider";
+import { hideRouteOverlay } from "@/lib/phigros/page-transition";
 
 export const metadata: Metadata = {
   title: "Phi.ts",

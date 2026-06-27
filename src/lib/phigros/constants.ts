@@ -65,6 +65,7 @@ export const STORAGE_KEYS = {
   feedback: 'feedback',
   showPoint: 'showPoint',
   showTransition: 'showTransition',
+  autoPlay: 'autoPlay',
 } as const;
 
 /**
@@ -88,6 +89,7 @@ export const SETTING_DEFAULTS = {
   [STORAGE_KEYS.feedback]: false,
   [STORAGE_KEYS.showPoint]: false,
   [STORAGE_KEYS.showTransition]: true,
+  [STORAGE_KEYS.autoPlay]: false,
 } as const;
 
 /** 按键缩放档位（原版隐藏 select 的 option 值） */

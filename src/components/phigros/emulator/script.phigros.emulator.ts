@@ -45,6 +45,7 @@ export interface EmulatorElements {
   showPoint: HTMLInputElement;
   hyperMode: HTMLInputElement;
   showTransition: HTMLInputElement;
+  autoPlay: HTMLInputElement;
 }
 
 export interface EmulatorDeps {
@@ -210,7 +211,7 @@ const inputIllustrator = deps.elements.inputIllustrator;  //曲绘
 const inputOffset = deps.elements.inputOffset;    //偏移率
 const showPoint = deps.elements.showPoint; //      显示定位点
 const lineColor = deps.elements.lineColor; //FC/AP指示器
-const autoplay ={'checked':false};      //奥托普雷
+const autoplay = deps.elements.autoPlay;      //奥托普雷（从设置面板读取）
 const hyperMode = deps.elements.hyperMode; //研判
 const showTransition = deps.elements.showTransition;       //是否开启过度动画
 // const bgs = {};
@@ -307,10 +308,18 @@ selectaspectratio.addEventListener("change", resizeCanvas);
 function resizeCanvas() {
         const width = document.documentElement.clientWidth;
         const height = document.documentElement.clientHeight;
-        const defaultWidth = Math.min(854, width * 0.8);
-        const defaultHeight = defaultWidth / (selectaspectratio.value || 16 / 9);
-        const realWidth = Math.floor(full.check(canvas) ? width : defaultWidth);
-        const realHeight = Math.floor(full.check(canvas) ? height : defaultHeight);
+        // 始终填满视口（按 selectaspectratio 比例计算，不限 854px）
+        const aspect = Number(selectaspectratio.value) || 16 / 9;
+        let realWidth = width;
+        let realHeight = height;
+        // 按 16:9（或用户选择的宽高比）适配，保持比例不变形
+        if (width / height > aspect) {
+                realWidth = height * aspect;
+        } else {
+                realHeight = width / aspect;
+        }
+        realWidth = Math.floor(realWidth);
+        realHeight = Math.floor(realHeight);
         canvas.style.cssText += `;width:${realWidth}px;height:${realHeight}px`;
         canvas.width = realWidth * devicePixelRatio;
         canvas.height = realHeight * devicePixelRatio;

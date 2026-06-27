@@ -41,6 +41,7 @@ import {
   INITIAL_BACKGROUND,
 } from '@/lib/phigros/asset-paths';
 import { gameLevels, RANK_IMAGES } from '@/lib/phigros/constants';
+import { navigateWithFade } from '@/lib/phigros/page-transition';
 
 /** 谱面元数据（meta.json 反序列化结果） */
 interface SongMeta {
@@ -152,14 +153,15 @@ function LevelOverContent() {
 
   // ─── 跳转 ───────────────────────────────────────
   const handleRetry = useCallback(() => {
-    router.push(
+    navigateWithFade(
+      router,
       `/while-playing?play=${encodeURIComponent(play)}&l=${encodeURIComponent(
         levelStr,
       )}&c=${encodeURIComponent(chapter)}`,
     );
   }, [router, play, levelStr, chapter]);
   const handleBack = useCallback(() => {
-    router.push(`/song-select?c=${encodeURIComponent(chapter)}`);
+    navigateWithFade(router, `/song-select?c=${encodeURIComponent(chapter)}`);
   }, [router, chapter]);
   const handleKey = useCallback(
     (handler: () => void) => (e: React.KeyboardEvent) => {

@@ -30,6 +30,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ChapterCard from '@/components/phigros/ChapterCard';
+import { navigateWithFade } from '@/lib/phigros/page-transition';
 import {
   CHAPTER_IMAGES,
   CHAPTER_SELECT_AUDIO,
@@ -78,8 +79,16 @@ export default function ChapterSelectPage() {
       // 2. darkOverlay 加 fadeIn 类（触发 cs-fadeIn 0.5s 动画）
       setFadeIn(true);
 
-      // 3. 400ms 后跳转 /song-select?c={codename}
+      // 3. 400ms 后跳转（darkOverlay 已覆盖屏幕，用全局遮罩保持连续）
       navigateTimerRef.current = setTimeout(() => {
+        // 创建全局遮罩保持过渡连续（darkOverlay 随页面卸载会消失）
+        const overlay = document.getElementById('phi-route-overlay');
+        if (!overlay) {
+          const o = document.createElement('div');
+          o.id = 'phi-route-overlay';
+          o.style.cssText = 'position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:99999;';
+          document.body.appendChild(o);
+        }
         router.push(`/song-select?c=${codename}`);
       }, 400);
     },
@@ -88,7 +97,7 @@ export default function ChapterSelectPage() {
 
   /** 设置按钮：跳转 /settings */
   const handleSettingClick = useCallback(() => {
-    router.push('/settings');
+    navigateWithFade(router, '/settings');
   }, [router]);
 
   useEffect(() => {

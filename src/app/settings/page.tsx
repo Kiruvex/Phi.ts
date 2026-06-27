@@ -39,6 +39,7 @@ import { useRouter } from 'next/navigation';
 import { usePhigrosSettings } from '@/hooks/use-phigros-settings';
 import { SettingSlider } from '@/components/phigros/SettingSlider';
 import { SettingToggle } from '@/components/phigros/SettingToggle';
+import { navigateWithFade } from '@/lib/phigros/page-transition';
 import {
   SCALE_RATIO_OPTIONS,
   GLOBAL_ALPHA_OPTIONS,
@@ -86,6 +87,9 @@ export default function SettingsPage() {
   const yCoordRef = useRef(0);
   const prevTouchYRef = useRef(0);
 
+  // 下落音符动画容器 ref
+  const fallingNotesRef = useRef<HTMLDivElement | null>(null);
+
   // 挂载后从 localStorage 重新拉取一次，确保与 persist 水合结果一致
   useEffect(() => {
     usePhigrosSettings.getState().loadFromStorage();
@@ -129,6 +133,7 @@ export default function SettingsPage() {
       if (maxScroll <= 0) return; // 内容不超出容器，禁止滚动
       yCoordRef.current = clamp(yCoordRef.current - e.deltaY / 8);
       setMarginTop(yCoordRef.current);
+      updateEdgeScale();
     };
     const onTouchStart = (e: TouchEvent) => {
       if (e.changedTouches.length === 0) return;
@@ -144,11 +149,55 @@ export default function SettingsPage() {
       yCoordRef.current = clamp(yCoordRef.current + -0.1 * (prevTouchYRef.current - touchY));
       prevTouchYRef.current = touchY;
       setMarginTop(yCoordRef.current);
+      updateEdgeScale();
+    };
+
+    /**
+     * 底部边缘缩放效果（类似圆屏手表上下滑动时的边缘消隐）
+     *
+     * item 底部距容器底部 < 200px 时开始渐变缩放淡出，
+     * 距离 200→0 对应 scale 1→0.75, opacity 1→0.15
+     *
+     * offsetTop 随 marginTop 滚动动态变化，已包含滚动偏移。
+     * container.offsetHeight 是 leftArea 全高（含 padding-top:100）。
+     */
+    const updateEdgeScale = () => {
+      const items = document.getElementById('settingItems');
+      if (!items) return;
+      const container = items.parentElement;
+      if (!container) return;
+      const containerBottom = container.offsetHeight;
+      const fadeZone = 130; // 从底部 130px 处开始渐变
+      const children = items.children;
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i] as HTMLElement;
+        const itemTop = child.offsetTop;
+        const itemBottom = itemTop + child.offsetHeight;
+        // item 底部距容器底部的距离（正数=在容器内，负数=已超出）
+        const distFromBottom = containerBottom - itemBottom;
+        // item 顶部在容器内（至少部分可见）且距底部 < fadeZone
+        if (itemTop < containerBottom && distFromBottom < fadeZone) {
+          // t: 0（距底部远/刚进入fadeZone）→ 1（到达底部/超出）
+          const t = Math.max(0, Math.min(1, 1 - distFromBottom / fadeZone));
+          const scale = 1 - 0.25 * t; // 1→0.75
+          const opacity = 1 - 0.7 * t; // 1→0.3（调清晰）
+          child.style.transform = `scale(${scale})`;
+          child.style.opacity = String(opacity);
+          child.style.transformOrigin = 'bottom center';
+          child.style.transition = 'none';
+        } else {
+          child.style.transform = '';
+          child.style.opacity = '';
+          child.style.transformOrigin = '';
+        }
+      }
     };
 
     window.addEventListener('wheel', onWheel, { passive: true });
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true });
+    // 初始触发一次
+    setTimeout(updateEdgeScale, 100);
     return () => {
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('touchstart', onTouchStart);
@@ -156,21 +205,140 @@ export default function SettingsPage() {
     };
   }, [isClient]);
 
+  // ─── 下落音符动画（JS rAF 精确控制，每周期重新创建元素消除累积偏移） ───
+  useEffect(() => {
+    if (!isClient) return;
+    const container = fallingNotesRef.current;
+    if (!container) return;
+
+    const JUDGE_LINE_RATIO = 0.65; // 判定线在容器 65% 处
+    const FALL_DURATION = 1000; // 下落 1s
+    const CLICK_DURATION = 500; // 点击特效 500ms
+    const WAIT_DURATION = 1500; // 等待 1.5s
+    const CYCLE = FALL_DURATION + WAIT_DURATION; // 总周期 2.5s
+
+    let rafId = 0;
+    let startTime = performance.now();
+
+    // 每周期创建新元素，避免 CSS 累积偏移
+    let noteEl: HTMLDivElement | null = null;
+    let clickEl: HTMLDivElement | null = null;
+    let particles: HTMLDivElement[] = [];
+    let cycleStartTime = startTime;
+
+    const createNote = () => {
+      noteEl = document.createElement('div');
+      noteEl.className = 'settings-tap-note';
+      noteEl.style.opacity = '1';
+      noteEl.style.top = '-30px';
+      container.appendChild(noteEl);
+    };
+
+    const createClickEffect = () => {
+      clickEl = document.createElement('div');
+      clickEl.className = 'settings-click-effect';
+      clickEl.style.opacity = '1';
+      clickEl.style.backgroundPosition = '0 0';
+      container.appendChild(clickEl);
+
+      // 4 个粒子
+      const dirs = [
+        [200, -80], [-200, -80], [180, 60], [-180, 60],
+      ];
+      particles = dirs.map(([dx, dy]) => {
+        const p = document.createElement('div');
+        p.className = 'settings-particle';
+        p.style.opacity = '1';
+        p.style.transform = 'translate(0, 0)';
+        p.dataset.dx = String(dx);
+        p.dataset.dy = String(dy);
+        container.appendChild(p);
+        return p;
+      });
+    };
+
+    const cleanupElements = () => {
+      if (noteEl) { noteEl.remove(); noteEl = null; }
+      if (clickEl) { clickEl.remove(); clickEl = null; }
+      particles.forEach((p) => p.remove());
+      particles = [];
+    };
+
+    const animate = (now: number) => {
+      const elapsed = now - cycleStartTime;
+      const containerH = container.offsetHeight;
+      const judgeY = containerH * JUDGE_LINE_RATIO;
+
+      if (elapsed < FALL_DURATION) {
+        // 阶段1：下落
+        if (!noteEl) createNote();
+        const t = elapsed / FALL_DURATION;
+        // 匀速下落
+        const y = -30 + (judgeY + 30) * t;
+        if (noteEl) {
+          noteEl.style.top = `${y}px`;
+          noteEl.style.opacity = '1';
+        }
+      } else if (elapsed < FALL_DURATION + 50) {
+        // 阶段2：到达判定线，音符消失，触发点击特效
+        if (noteEl) {
+          noteEl.style.opacity = '0';
+          noteEl.remove();
+          noteEl = null;
+        }
+        if (!clickEl) createClickEffect();
+      } else if (elapsed < FALL_DURATION + CLICK_DURATION) {
+        // 阶段3：点击特效播放（精灵帧 + 粒子）
+        const clickT = (elapsed - FALL_DURATION) / CLICK_DURATION;
+        if (clickEl) {
+          const frame = Math.min(29, Math.floor(clickT * 30));
+          clickEl.style.opacity = String(clickT < 0.8 ? 1 - clickT / 0.8 : 0);
+          clickEl.style.backgroundPosition = `0 ${-frame * 120}px`;
+        }
+        particles.forEach((p) => {
+          const dx = parseFloat(p.dataset.dx || '0');
+          const dy = parseFloat(p.dataset.dy || '0');
+          // 粒子飞散：9*t/(8*t+1) 模拟原版公式
+          const ds = 9 * clickT / (8 * clickT + 1);
+          p.style.transform = `translate(${dx * ds}px, ${dy * ds}px) scale(${1 - clickT * 0.7})`;
+          p.style.opacity = String(clickT < 0.8 ? 1 - clickT / 0.8 : 0);
+        });
+      } else if (elapsed < CYCLE) {
+        // 阶段4：等待
+        if (clickEl) { clickEl.style.opacity = '0'; }
+        particles.forEach((p) => { p.style.opacity = '0'; });
+      } else {
+        // 新周期：清理旧元素，重新开始
+        cleanupElements();
+        cycleStartTime = now;
+      }
+
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      cleanupElements();
+    };
+  }, [isClient]);
+
   // 返回按钮：原版 saveSettings() + 跳转 chapterSelect
   // zustand persist 已实时写入 localStorage，无需显式 save
   const handleBack = useCallback(() => {
-    router.push('/chapter-select');
+    navigateWithFade(router, '/chapter-select');
   }, [router]);
 
   const handleAboutUs = useCallback(() => {
-    router.push('/about-us');
+    navigateWithFade(router, '/about-us');
   }, [router]);
 
   const handleClearData = useCallback(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.clear();
     }
-    router.push('/');
+    navigateWithFade(router, '/');
   }, [router]);
 
   // 未挂载时仅渲染空背景，避免 SSR 与 CSR 之间 store 状态不一致导致 hydration 警告
@@ -307,6 +475,14 @@ export default function SettingsPage() {
             onChange={(v) => settings.setSetting('selectAspectRatio', v)}
           />
 
+          {/* 14. 自动游玩 — toggle，默认关（原版硬编码关闭无UI，此处启用） */}
+          <SettingToggle
+            codename="autoPlay"
+            label="自动游玩"
+            currentValue={settings.autoPlay}
+            onChange={(v) => settings.setSetting('autoPlay', v)}
+          />
+
           {/* 额外按钮：关于我们 */}
           <div className="item">
             <button type="button" className="button" onClick={handleAboutUs}>
@@ -321,6 +497,11 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* 右侧空白区域：判定线 + Tap 音符循环下落动画（JS rAF 精确控制） */}
+      <div className="settings-falling-notes" aria-hidden="true" ref={fallingNotesRef}>
+        <div className="settings-judge-line" />
       </div>
     </div>
   );

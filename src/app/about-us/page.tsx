@@ -83,6 +83,14 @@ export default function AboutUsPage() {
     if (!isMountedRef.current) return;
     if (navigatedRef.current) return;
     navigatedRef.current = true;
+    // 创建全局遮罩保持过渡连续（blackOverlay 随页面卸载会消失）
+    const overlay = document.getElementById('phi-route-overlay');
+    if (!overlay) {
+      const o = document.createElement('div');
+      o.id = 'phi-route-overlay';
+      o.style.cssText = 'position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:99999;';
+      document.body.appendChild(o);
+    }
     router.push('/chapter-select');
   }, [router]);
 

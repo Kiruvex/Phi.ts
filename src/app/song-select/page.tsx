@@ -85,6 +85,7 @@ import {
   TAP_AUDIO,
 } from '@/lib/phigros/asset-paths';
 import { type Difficulty } from '@/lib/phigros/constants';
+import { navigateWithFade } from '@/lib/phigros/page-transition';
 
 // ─── 客户端检测（避免 SSR/CSR hydration mismatch） ────────────
 const subscribeNoop = () => () => {};
@@ -349,11 +350,11 @@ function SongSelectContent() {
   // ─── 事件处理 ───────────────────────────────────────────────
 
   const handleBack = useCallback(() => {
-    router.push('/chapter-select');
+    navigateWithFade(router, '/chapter-select');
   }, [router]);
 
   const handleSettings = useCallback(() => {
-    router.push('/settings');
+    navigateWithFade(router, '/settings');
   }, [router]);
 
   const handleSelectSong = useCallback((index: number) => {
@@ -397,6 +398,14 @@ function SongSelectContent() {
       clearTimeout(readyToLoadTimerRef.current);
     }
     readyToLoadTimerRef.current = window.setTimeout(() => {
+      // 创建全局遮罩保持过渡连续（readyToLoadOverlay 随页面卸载会消失）
+      const overlay = document.getElementById('phi-route-overlay');
+      if (!overlay) {
+        const o = document.createElement('div');
+        o.id = 'phi-route-overlay';
+        o.style.cssText = 'position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:99999;';
+        document.body.appendChild(o);
+      }
       router.push(
         `/while-playing?play=${encodeURIComponent(item.codename)}&l=${encodeURIComponent(
           displayLevel,

@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { createEmulator, type EmulatorInstance } from './emulator/script.phigros.emulator';
 import { usePhigrosSettings } from '@/hooks/use-phigros-settings';
 import { LoadingChartOverlay } from '@/components/phigros/LoadingChartOverlay';
+import { navigateWithFade } from '@/lib/phigros/page-transition';
 import {
   EMULATOR_IMAGES,
   EXTERNAL_LIBS,
@@ -57,6 +58,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
   const showPointRef = useRef<HTMLInputElement>(null);
   const hyperModeRef = useRef<HTMLInputElement>(null);
   const showTransitionRef = useRef<HTMLInputElement>(null);
+  const autoPlayRef = useRef<HTMLInputElement>(null);
 
   // 模拟器实例
   const emulatorRef = useRef<EmulatorInstance | null>(null);
@@ -122,17 +124,19 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
           showPoint: showPointRef.current!,
           hyperMode: hyperModeRef.current!,
           showTransition: showTransitionRef.current!,
+          autoPlay: autoPlayRef.current!,
         },
         play,
         level,
         chapter,
         onFinish: (params) => {
-          router.push(
+          navigateWithFade(
+            router,
             `/level-over?play=${params.play}&l=${params.l}&score=${params.score}&mc=${params.mc}&p=${params.p}&g=${params.g}&b=${params.b}&m=${params.m}&e=${params.e}&c=${params.c}`,
           );
         },
         onBack: () => {
-          router.push(`/song-select?c=${chapter}`);
+          navigateWithFade(router, `/song-select?c=${chapter}`);
         },
         onReady: () => {
           if (!cancelled) setReady(true);
@@ -188,6 +192,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
       feedback: feedbackRef.current,
       showPoint: showPointRef.current,
       showTransition: showTransitionRef.current,
+      autoPlay: autoPlayRef.current,
     };
     const values: Record<string, string | boolean> = {
       'input-offset': settings.inputOffset,
@@ -202,6 +207,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
       feedback: settings.feedback,
       showPoint: settings.showPoint,
       showTransition: settings.showTransition,
+      autoPlay: settings.autoPlay,
     };
     for (const key in values) {
       const elem = (map as any)[key];
@@ -241,7 +247,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
     const audio = new Audio(TAP_AUDIO(2));
     audio.play().catch(() => {});
     setTimeout(() => {
-      router.push(`/song-select?c=${chapter}`);
+      navigateWithFade(router, `/song-select?c=${chapter}`);
     }, 500);
   }, [router, chapter]);
 
@@ -260,7 +266,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
   }, []);
 
   return (
-    <>
+    <div className="while-playing-root">
       {/* 游戏 canvas */}
       <canvas ref={canvasRef} id="canvas" className="canvas fade" />
 
@@ -326,6 +332,7 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
         <input id="showPoint" ref={showPointRef} type="checkbox" />
         <input id="hyperMode" ref={hyperModeRef} type="checkbox" />
         <input id="showTransition" ref={showTransitionRef} type="checkbox" defaultChecked />
+        <input id="autoPlay" ref={autoPlayRef} type="checkbox" />
       </div>
 
       {/* 错误提示（初始化失败时显示） */}
@@ -371,6 +378,6 @@ export default function PhigrosEmulator({ play, level, chapter }: PhigrosEmulato
           <div className="songName">点按以开始</div>
         </div>
       )}
-    </>
+    </div>
   );
 }
