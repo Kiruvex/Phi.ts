@@ -2239,23 +2239,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: none; /* 容器不拦截事件，让 canvas 接收 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* canvas、pauseOverlay 需要接收事件 */
-.while-playing-root > canvas,
-.while-playing-root > #pauseOverlay {
-  pointer-events: auto;
-}
-
-/* canvas 由 resizeCanvas() 动态设置 style.width/height，
-   CSS 只设默认值，不用 calc(100vh*1.778) 避免全屏时尺寸错误
-   position:relative + z-index:1 确保在 overlay 之下能接收点击 */
 canvas.canvas#canvas {
   background-color: transparent;
-  position: relative;
   z-index: 1;
-  pointer-events: auto;
   touch-action: none;
 }
 
@@ -2278,6 +2268,14 @@ div.pauseOverlay.visable {
   backdrop-filter: blur(75px);
   font-size: 3rem;
   color: #fff;
+  /* 倒计时时 backdrop-filter 渐变到无模糊 */
+  transition: backdrop-filter 2s linear;
+}
+
+/* 倒计时状态：毛玻璃渐变到清晰（2s 内 blur 75px → 0），
+   方便玩家在恢复前观察谱面。第 2 秒（显示"1"时）完全清晰。 */
+div.pauseOverlay.visable.countdown {
+  backdrop-filter: blur(0px);
 }
 
 div#backBtn {

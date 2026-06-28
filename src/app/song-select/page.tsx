@@ -98,7 +98,10 @@ const getMountedServer = () => false;
 function playOneShot(src: string) {
   if (typeof window === 'undefined') return;
   const audio = new Audio(src);
-  audio.play().catch((e) => console.error('[songSelect] One-shot audio failed:', e));
+  audio.play().catch((e) => {
+    if (e instanceof DOMException && e.name === 'AbortError') return;
+    console.error('[songSelect] One-shot audio failed:', e);
+  });
 }
 
 /**
@@ -246,9 +249,11 @@ function SongSelectContent() {
       const sliceStart = Number(item.meta.sliceAudioStart) || 0;
       // 设置 currentTime（原版直接赋值，浏览器会在 metadata 加载后 seek）
       audio.currentTime = sliceStart;
-      audio.play().catch((e) =>
-        console.error('[songSelect] Sliced audio play failed:', e),
-      );
+      audio.play().catch((e) => {
+        // AbortError 是快速切歌时 play() 被新 load 打断，属正常行为，静默
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+        console.error('[songSelect] Sliced audio play failed:', e);
+      });
 
       // 清理旧的 interval
       if (sliceIntervalRef.current) {

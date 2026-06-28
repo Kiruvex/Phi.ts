@@ -149,6 +149,17 @@ export default function AboutUsPage() {
 
     // 4. 启动 autoScroll：12ms 间隔，marginTop -= 0.5px
     let topSize = 0;
+    /** 滚到底后的 ended 监听器：当前歌曲播完后黑屏返回（一次性） */
+    const handleEndedForReturn = () => {
+      if (!isMountedRef.current) return;
+      // 当前歌曲播完，黑屏后返回
+      if (blackOverlayRef.current) {
+        blackOverlayRef.current.style.opacity = '1';
+      }
+      navTimerRef.current = setTimeout(() => {
+        navigateToChapterSelect();
+      }, 1000);
+    };
     autoScrollIntervalRef.current = setInterval(() => {
       const currentMarginTop = parseFloat(
         document.body.style.marginTop.replace('px', '') || '0'
@@ -158,17 +169,11 @@ export default function AboutUsPage() {
         document.body.offsetHeight + currentMarginTop <
         window.innerHeight
       ) {
-        // END：清除 interval，3s 后渐显 blackOverlay，再 1s 后跳转
+        // END：清除滚动 interval，停止循环切换，等当前歌曲播完再返回
         stopAutoScroll();
-        endFadeTimerRef.current = setTimeout(() => {
-          if (!isMountedRef.current) return;
-          if (blackOverlayRef.current) {
-            blackOverlayRef.current.style.opacity = '1';
-          }
-          navTimerRef.current = setTimeout(() => {
-            navigateToChapterSelect();
-          }, 1000);
-        }, 3000);
+        // 移除循环切换的 ended 监听器，改为"播完即返回"的一次性监听器
+        audio.removeEventListener('ended', handleEnded);
+        audio.addEventListener('ended', handleEndedForReturn, { once: true });
         return;
       }
 
@@ -178,6 +183,7 @@ export default function AboutUsPage() {
 
     return () => {
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('ended', handleEndedForReturn);
       audio.pause();
       stopAutoScroll();
       if (endFadeTimerRef.current) {

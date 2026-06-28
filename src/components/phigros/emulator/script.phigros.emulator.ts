@@ -22,6 +22,7 @@
  */
 
 import { chart123, chartp23, chartify, tween } from '@/lib/phigros/chart-parser';
+import { getBlobUrl } from '@/lib/phigros/custom-chart-storage';
 
 // ─── 模拟器依赖接口 ───────────────────────────────────────
 export interface EmulatorElements {
@@ -89,6 +90,10 @@ export interface EmulatorInstance {
 export function createEmulator(deps: EmulatorDeps): EmulatorInstance {
 const _i = ['Phigros模拟器', [1, 4, 13], 1611795955, 1637586185];
 document.oncontextmenu = (e: Event) => e.preventDefault(); //qwq
+// 游戏状态跟踪（替代 btnPlay.value / btnPause.value，避免 React re-render 重置）
+// 作为实例变量，每次 createEmulator 都重新初始化
+let gameState: "idle" | "running" | "ended" = "idle";
+let pauseState: "running" | "paused" = "running";
 //      切换提示框选项卡
 // for (const i of document.getElementById("view-nav").children) {
 //      i.addEventListener("click", function () {
@@ -384,8 +389,7 @@ const specialClick = {
         }],
         click(id) {
                 const now = Date.now();
-                // id=0（左上角暂停）改为单击触发，其余保持双击
-                if (id === 0 || now - this.time[id] < 300) this.func[id]();
+                if (now - this.time[id] < 300) this.func[id]();
                 this.time[id] = now;
         }
 }
@@ -398,9 +402,7 @@ class Click {
         }
         static activate(offsetX, offsetY) {
                 taps.push(new Click(offsetX, offsetY));
-                // 角落热区（暂停/重启/特殊）：原版 lineScale*1.5，放大到 lineScale*3
-                // 让点击更容易。lineScale 已含 DPR，无需额外缩放。
-                const hotZone = lineScale * 3;
+                const hotZone = lineScale * 1.5;
                 if (offsetX < hotZone && offsetY < hotZone) specialClick.click(0);
                 if (offsetX > canvasos.width - hotZone && offsetY < hotZone) specialClick.click(1);
                 if (offsetX < hotZone && offsetY > canvasos.height - hotZone) specialClick.click(2);
@@ -704,7 +706,7 @@ canvas.addEventListener("mouseout", function (evt) {
 //适配键盘(喵喵喵?)
 window.addEventListener("keydown", function (evt) {
         if (document.activeElement.classList.value == "input") return;
-        if (btnPlay.value != "停止") return;
+        if (gameState != "running") return;
         evt.preventDefault();
         if (evt.key == "Shift") btnPause.click();
         else if (keyboard[evt.code] instanceof Click);
@@ -712,7 +714,7 @@ window.addEventListener("keydown", function (evt) {
 }, false);
 window.addEventListener("keyup", function (evt) {
         if (document.activeElement.classList.value == "input") return;
-        if (btnPlay.value != "停止") return;
+        if (gameState != "running") return;
         evt.preventDefault();
         if (evt.key == "Shift");
         else if (keyboard[evt.code] instanceof Click) delete keyboard[evt.code];
@@ -1246,9 +1248,9 @@ const qwqEnd = new Timer();
 // });
 //暂停监听器（回到原版纯 DOM 操作，不用 React 状态管理 pauseOverlay）
 btnPause.addEventListener("click", function () {
-        if (this.classList.contains("disabled") || btnPlay.value == "播放") return;
+        if (this.classList.contains("disabled") || gameState != "running") return;
         const overlay = deps.elements.pauseOverlay;
-        if (this.value == "暂停") {
+        if (pauseState == "running") {
                 clearInterval(window.LevelOverTimeOut);
                 let pauseAudio=document.createElement('audio');
                 pauseAudio.src="/phigros/assets/audio/Tap6.wav";
@@ -1257,16 +1259,20 @@ btnPause.addEventListener("click", function () {
                 overlay.classList.add('visable');
                 if (showTransition.checked && isOutStart) qwqOut.pause();
                 isPaused = true;
+                pauseState = "paused";
                 this.value = "继续";
                 curTime = timeBgm;
                 while (stopPlaying.length) stopPlaying.shift()();
         } else {
                 // 倒计时 3-2-1，直接操作 DOM
+                // 加 countdown class 触发毛玻璃渐变到清晰（2s 内 blur 75px → 0）
+                overlay.classList.add('countdown');
                 overlay.textContent = "3";
                 setTimeout(() => { overlay.textContent = "2"; }, 1000);
                 setTimeout(() => { overlay.textContent = "1"; }, 2000);
                 setTimeout(()=>{
                         overlay.classList.remove('visable');
+                        overlay.classList.remove('countdown');
                         // 恢复按钮 HTML（原版用 innerHTML 重写，这里也用 innerHTML）
                         overlay.innerHTML = '<audio src="/phigros/assets/audio/Tap2.wav" id="tap2"></audio><div id="backBtn"></div><div id="restartBtn"></div><div id="resumeBtn"></div>';
                         // 重新绑定按钮事件（innerHTML 重写后 DOM 引用丢失）
@@ -1277,6 +1283,7 @@ btnPause.addEventListener("click", function () {
                         if (showTransition.checked && isOutStart) qwqOut.play();
                         isPaused = false;
                         if (isInEnd && !isOutStart) playBgm(Renderer.bgMusic, timeBgm);
+                        pauseState = "running";
                         this.value = "暂停";
                 },3000);
         }
@@ -1312,13 +1319,6 @@ function loop() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1;
         ctx.drawImage(canvasos, (canvas.width - canvasos.width) / 2, 0);
-        //Copyright
-        ctx.font = `${lineScale * 0.4}px Mina`;
-        ctx.fillStyle = "#ccc";
-        ctx.globalAlpha = 0.8;
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        ctx.fillText(`Powered By Phi.ts`, (canvas.width + canvasos.width) / 2 - lineScale * 0.1, canvas.height - lineScale * 0.2);
         stopDrawing = requestAnimationFrame(loop); //回调更新动画
 }
 
@@ -1597,7 +1597,10 @@ function qwqdraw2() {
                 c: deps.chapter
             });
         fucktemp = true;
-        btnPause.click(); //isPaused = true;
+        gameState = "ended";
+        // 游戏结束：直接执行暂停逻辑（不调 btnPause.click()，因为 gameState!="running" 会被监听器跳过）
+        isPaused = true;
+        pauseState = "paused";
         while (stopPlaying.length) stopPlaying.shift()();
         cancelAnimationFrame(stopDrawing);
         btnPause.classList.add("disabled");
@@ -1860,8 +1863,9 @@ function chartp23(pec, filename) {
                                 startTime: startTime,
                                 endTime: endTime,
                         }
+                        // 原版有 console.warn 但谱面数据确实存在 startTime>endTime 的情况
+                        // （如 sample 谱面），不影响渲染，静默处理避免控制台刷屏
                         if (typeof startTime == 'number' && typeof endTime == 'number' && startTime > endTime) {
-                                console.warn("Warning: startTime " + startTime + " is larger than endTime " + endTime);
                                 //return;
                         }
                         switch (type) {
@@ -2375,6 +2379,96 @@ let chartLineTextureDecoded: any[] = [];
 // 加载谱面资源（原版 index.js DOMContentLoaded 逻辑）
 async function loadChartResources() {
         const { play, level } = deps;
+
+        // ─── 自定义 ZIP 谱面：从 sessionStorage + IndexedDB 读取 ───
+        if (play === 'custom') {
+                console.log('Loading custom chart from sessionStorage + IndexedDB');
+                const chartStr = sessionStorage.getItem('phi-custom-chart');
+                const metaStr = sessionStorage.getItem('phi-custom-meta');
+
+                if (!chartStr) {
+                        console.error('Custom chart not found in sessionStorage');
+                        return;
+                }
+
+                // meta（ZIP 上传时存入，含 name/artist/chartDesigner/illustrator）
+                chartMetadata = metaStr ? JSON.parse(metaStr) : {};
+                deps.elements.inputName.value = chartMetadata.name || '自定义谱面';
+                deps.elements.inputLevel.value = level.toUpperCase() + " Lv.?";
+                deps.elements.inputDesigner.value = chartMetadata.chartDesigner || '未知';
+                deps.elements.inputIllustrator.value = chartMetadata.illustrator || '未知';
+
+                // 谱面
+                chartString = chartStr;
+                try {
+                        Renderer.chart = JSON.parse(chartString);
+                } catch (error) {
+                        Renderer.chart = chart123(chartp23(chartString, undefined));
+                }
+
+                // 曲绘（从 IndexedDB 取 Blob → Blob URL → fetch → createImageBitmap）
+                const illustrationUrl = await getBlobUrl('illustration');
+                if (illustrationUrl) {
+                        try {
+                                const illuResp = await fetch(illustrationUrl);
+                                const illuBlob = await illuResp.blob();
+                                URL.revokeObjectURL(illustrationUrl);
+                                const img = await createImageBitmap(illuBlob);
+                                Renderer.bgImage = img;
+                                Renderer.bgImageBlur = await createImageBitmap(imgBlur(img));
+                        } catch (e) {
+                                console.error('Custom illustration load failed:', e);
+                        }
+                }
+
+                // 音乐（从 IndexedDB 取 Blob → Blob URL → fetch → decodeAudioData）
+                const musicUrl = await getBlobUrl('music');
+                if (musicUrl) {
+                        try {
+                                const musicResp = await fetch(musicUrl);
+                                const musicBuffer = await musicResp.arrayBuffer();
+                                URL.revokeObjectURL(musicUrl);
+                                Renderer.bgMusic = await actx.decodeAudioData(musicBuffer);
+                        } catch (e) {
+                                console.error('Custom music load failed:', e);
+                        }
+                }
+
+                // 判定线贴图（line.json 从 sessionStorage 读，图片从 IndexedDB 读）
+                chartLine = [];
+                chartLineData = [];
+                chartLineTextureDecoded = [];
+                bgs = {};
+                const lineTextureJsonStr = sessionStorage.getItem('phi-custom-line-json');
+                if (lineTextureJsonStr) {
+                        try {
+                                const lineData = JSON.parse(lineTextureJsonStr);
+                                chartLineData = lineData;
+                                chartLine = lineData;
+                                chartLineTextureDecoded = new Array(lineData.length);
+                                for (let i = 0; i < lineData.length; i++) {
+                                        const texUrl = await getBlobUrl('lineTex:' + lineData[i].Image);
+                                        if (texUrl) {
+                                                try {
+                                                        const texResp = await fetch(texUrl);
+                                                        const texBlob = await texResp.blob();
+                                                        URL.revokeObjectURL(texUrl);
+                                                        const texImg = await createImageBitmap(texBlob);
+                                                        chartLineTextureDecoded[i] = texImg;
+                                                        bgs[lineData[i].Image] = texImg;
+                                                } catch (e) {
+                                                        console.error('Custom line texture load failed:', lineData[i].Image, e);
+                                                }
+                                        }
+                                }
+                        } catch (e) {
+                                console.error('Custom line.json parse failed:', e);
+                        }
+                }
+                return;
+        }
+
+        // ─── 内置谱面：从 /phigros/charts/ HTTP fetch ───
         // 获取元数据
         console.log('Fetching MetaData:', play);
         const metaResp = await fetch(`/phigros/charts/${play}/meta.json`);
@@ -2467,7 +2561,7 @@ function applySettings(settings: Record<string, any>) {
 function replay() {
         deps.elements.pauseOverlay.classList.remove("visable");
         // 停止当前游戏（btnPlayClickHandler 的"停止"分支）
-        if (btnPlay.value == "停止") {
+        if (gameState == "running") {
                 while (stopPlaying.length) stopPlaying.shift()();
                 cancelAnimationFrame(stopDrawing);
                 fucktemp = false;
@@ -2480,6 +2574,7 @@ function replay() {
                 curTime = 0;
                 curTimestamp = 0;
                 duration = 0;
+                gameState = "idle";
                 btnPlay.value = "播放";
         }
         // 重新解析谱面
@@ -2492,8 +2587,9 @@ function replay() {
 
 // btnPlay 点击逻辑（原版 index.js 的 btn-play click 监听器）
 async function btnPlayClickHandler() {
+        pauseState = "running";
         btnPause.value = "暂停";
-        if (btnPlay.value == "播放") {
+        if (gameState != "running") {
                 stopPlaying.push(playSound(res["mute"], true, false, 0));
                 ("lines,notes,taps,drags,flicks,holds,reverseholds,tapholds").split(",").map((i: string) => Renderer[i] = []);
                 Renderer.chart = prerenderChart(Renderer.chart);
@@ -2521,6 +2617,7 @@ async function btnPlayClickHandler() {
                 if (!deps.elements.showTransition.checked) qwqIn.addTime(3000);
                 loop();
                 qwqIn.play();
+                gameState = "running";
                 btnPlay.value = "停止";
         } else {
                 while (stopPlaying.length) stopPlaying.shift()();
@@ -2535,6 +2632,7 @@ async function btnPlayClickHandler() {
                 curTime = 0;
                 curTimestamp = 0;
                 duration = 0;
+                gameState = "idle";
                 btnPlay.value = "播放";
         }
 }

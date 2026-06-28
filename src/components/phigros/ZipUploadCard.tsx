@@ -16,6 +16,7 @@ import type { MouseEvent } from 'react';
 import JSZip from 'jszip';
 import { playClickSound } from '@/lib/phigros/page-transition';
 import { chart123, chartp23 } from '@/lib/phigros/chart-parser';
+import { setBlob } from '@/lib/phigros/custom-chart-storage';
 
 export interface ZipUploadCardProps {
   /** 是否展开（accordion 模式）。未展开时点击仅展开，不打开文件选择器 */
@@ -84,11 +85,15 @@ export default function ZipUploadCard({ expanded = true, onClick, onExpand }: Zi
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
         const name = f.name;
-        const ext = name.split('.').pop()?.toLowerCase() || '';
+        const baseName = name.split('/').pop() || name;
+        const ext = baseName.split('.').pop()?.toLowerCase() || '';
 
-        setStatus(`识别文件 (${i + 1}/${files.length}): ${name.substring(0, 20)}`);
+        setStatus(`识别文件 (${i + 1}/${files.length}): ${baseName.substring(0, 20)}`);
 
-        if (ext === 'json') {
+        // line.json 优先识别（文件名以 line.json 结尾，可能在子目录里）
+        if (baseName.toLowerCase() === 'line.json') {
+          lineTextureJson = await f.async('text');
+        } else if (ext === 'json') {
           // 可能是 meta.json 或谱面
           const text = await f.async('text');
           try {
@@ -101,6 +106,7 @@ export default function ZipUploadCard({ expanded = true, onClick, onExpand }: Zi
               chartFile = name;
               chartString = text;
             }
+            // line.json 是数组格式，parse 成功但不匹配上面两个分支，忽略
           } catch {}
         } else if (ext === 'pec') {
           const text = await f.async('text');
@@ -118,9 +124,7 @@ export default function ZipUploadCard({ expanded = true, onClick, onExpand }: Zi
             illustrationBlob = blob;
           }
           // 收集所有图片（可能是判定线贴图）
-          lineTextureImages.push({ name, blob });
-        } else if (name.toLowerCase() === 'line.json') {
-          lineTextureJson = await f.async('text');
+          lineTextureImages.push({ name: baseName, blob });
         }
       }
 
@@ -180,12 +184,25 @@ export default function ZipUploadCard({ expanded = true, onClick, onExpand }: Zi
         level,
       };
 
-      // 存到 sessionStorage（用 Blob URL）
+      // 存到 IndexedDB（Blob）+ sessionStorage（文本）
+      // IndexedDB 跨页面保留 Blob；sessionStorage 的 Blob URL 导航后会失效
       if (musicBlob) {
-        sessionStorage.setItem('phi-custom-music', URL.createObjectURL(musicBlob));
+        await setBlob('music', musicBlob);
       }
       if (illustrationBlob) {
-        sessionStorage.setItem('phi-custom-illustration', URL.createObjectURL(illustrationBlob));
+        await setBlob('illustration', illustrationBlob);
+      }
+      // 判定线贴图：line.json 文本存 sessionStorage，图片 Blob 存 IndexedDB
+      // key 格式: "lineTex:文件名"，emulator 遍历 lineTextureData 时按 Image 字段取
+      if (lineTextureJson) {
+        sessionStorage.setItem('phi-custom-line-json', lineTextureJson);
+        // 过滤掉曲绘图片，只存判定线贴图
+        const texImages = lineTextureImages.filter(img =>
+          !meta?.illustration || !img.name.endsWith(meta.illustration)
+        );
+        for (const img of texImages) {
+          await setBlob('lineTex:' + img.name, img.blob);
+        }
       }
       sessionStorage.setItem('phi-custom-chart', chartString);
       sessionStorage.setItem('phi-custom-meta', JSON.stringify({

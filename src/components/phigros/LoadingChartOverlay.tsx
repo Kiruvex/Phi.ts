@@ -54,7 +54,19 @@ export interface LoadingChartOverlayProps {
 }
 
 export function LoadingChartOverlay({ chart, level, visible }: LoadingChartOverlayProps) {
-  const [songMeta, setSongMeta] = useState<SongMeta | null>(null)
+  // custom 谱面：同步从 sessionStorage 读取 meta（避免 effect 里 setState）
+  const [songMeta, setSongMeta] = useState<SongMeta | null>(() => {
+    if (!visible || chart !== 'custom') return null;
+    const metaStr = sessionStorage.getItem('phi-custom-meta');
+    if (metaStr) {
+      try {
+        return JSON.parse(metaStr) as SongMeta;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  })
   const [tip, setTip] = useState<string>('')
 
   useEffect(() => {
@@ -62,16 +74,18 @@ export function LoadingChartOverlay({ chart, level, visible }: LoadingChartOverl
 
     let cancelled = false
 
-    // 拉取谱面 meta.json（原版用同步 XHR，改为 fetch + await 避免阻塞渲染）
-    fetch(CHART_META(chart))
-      .then((res) => {
-        if (!res.ok) throw new Error(`meta.json responded ${res.status}`)
-        return res.json() as Promise<SongMeta>
-      })
-      .then((meta) => {
-        if (!cancelled) setSongMeta(meta)
-      })
-      .catch((err) => console.error('[LoadingChartOverlay] Failed to load meta:', err))
+    // 内置谱面：拉取 meta.json（custom 谱面在 useState 初始化时已读 sessionStorage）
+    if (chart !== 'custom') {
+      fetch(CHART_META(chart))
+        .then((res) => {
+          if (!res.ok) throw new Error(`meta.json responded ${res.status}`)
+          return res.json() as Promise<SongMeta>
+        })
+        .then((meta) => {
+          if (!cancelled) setSongMeta(meta)
+        })
+        .catch((err) => console.error('[LoadingChartOverlay] Failed to load meta:', err))
+    }
 
     // 拉取 tips.json 并随机选一条（原版 loadingScreen/index.js）
     fetch(TIPS_JSON)
